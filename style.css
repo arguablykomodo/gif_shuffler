@@ -1,0 +1,54 @@
+* {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+}
+
+.inputs {
+	display: grid;
+	grid-template-columns: max-content max-content;
+	justify-content: center;
+	grid-gap: 0 1ch;
+	border: 1px solid black;
+	padding: 1ch;
+	margin: 1ch;
+}
+
+.inputs label {
+	text-align: right;
+}
+
+.inputs input {
+	justify-self: start;
+}
+
+.inputs button {
+	grid-column: 1 / -1;
+	margin-top: 1ch;
+}
+
+.images {
+	display: flex;
+	justify-content: center;
+	align-items: baseline;
+	flex-wrap: wrap;
+}
+
+.images figure {
+	margin: 0;
+	text-align: center;
+	border: 1px solid black;
+	padding: 1ch;
+	margin: 1ch;
+}
+
+.images img {
+	max-width: 100%;
+	border: 1px solid black;
+}
+
+.hidden {
+	display: none;
+}

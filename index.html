@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1"/>
+	<link rel="stylesheet" href="style.css"/>
+	<title>GIF Shuffler</title>
+</head>
+<body>
+	<section class="inputs">
+		<label for="file">File:</label>
+		<input id="file" type="file" accept="image/gif,.gif"/>
+
+		<label for="override">Override frame speed:</label>
+		<input id="override" type="checkbox"/>
+
+		<label for="speed">Frame speed (ms):</label>
+		<input id="speed" type="number" value="20" min="20" max="6553500" step="10"/>
+
+		<button id="shuffle">Shuffle</button>
+	</section>
+	<section class="images">
+		<figure id="originalFigure" class="hidden">
+			<img id="original"/>
+			<figcaption>Original</figcaption>
+		</figure>
+		<figure id="shuffledFigure" class="hidden">
+			<img id="shuffled"/>
+			<figcaption>Shuffled</figcaption>
+		</figure>
+	</section>
+	<script src="script.js" type="module"></script>
+</body>
+</html>
