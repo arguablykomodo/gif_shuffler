@@ -166,7 +166,10 @@ pub fn parse(
     self.frames = frames;
     self.last_frame = null;
 
-    if (!std.mem.eql(u8, self.read(6), "GIF89a")) return error.WrongHeader;
+    const magic = self.read(6);
+    if (!std.mem.eql(u8, magic[0..4], "GIF8") or
+        !(magic[4] == '7' or magic[4] == '9') or
+        magic[5] != 'a') return error.WrongHeader;
 
     self.width = std.mem.readIntSlice(u16, self.read(2), .Little);
     self.height = std.mem.readIntSlice(u16, self.read(2), .Little);
