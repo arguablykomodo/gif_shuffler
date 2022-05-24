@@ -44,6 +44,7 @@ export fn shuffle(ptr: usize, len: usize, seed: u64, override_delay: bool, delay
 
     var output = std.ArrayList(u8).init(allocator);
     writer.write(
+        arena.allocator(),
         header.items,
         frames.items,
         parser.width,

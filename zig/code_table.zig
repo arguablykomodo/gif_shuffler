@@ -3,7 +3,7 @@ const consts = @import("./consts.zig");
 
 pub const CodeTable = std.BoundedArray([]const consts.Color, consts.MAX_CODES);
 
-const ALPHABET = blk: {
+pub const ALPHABET = blk: {
     var colors = [_]consts.Color{0} ** consts.MAX_COLORS;
     for (colors[0..consts.MAX_COLORS]) |*color, i| color.* = i;
     break :blk colors;
