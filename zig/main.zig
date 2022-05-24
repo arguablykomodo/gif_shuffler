@@ -53,6 +53,7 @@ export fn shuffle(ptr: usize, len: usize, seed: u64, override_delay: bool, delay
         if (override_delay) delay_time else null,
         &output,
     ) catch @panic("write error");
+    output.shrinkAndFree(output.items.len);
 
     free(@intToPtr([*]const u8, ptr), len);
 
