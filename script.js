@@ -1,5 +1,3 @@
-import { GifShuffler } from "./gif.js";
-
 /** @type {HTMLInputElement} */
 const fileInput = document.getElementById("file");
 /** @type {HTMLInputElement} */
@@ -41,16 +39,26 @@ overrideInput.addEventListener("change", () => {
   speedInput.disabled = !overrideInput.checked;
 });
 
-shuffleButton.addEventListener("click", () => {
+const { instance: { exports } } = await WebAssembly.instantiateStreaming(
+  fetch("main.wasm"),
+  { env: { print: console.log, ret } },
+);
+
+function ret(ptr, len) {
+  const buffer = new Uint8Array(exports.memory.buffer, ptr, len);
+  shuffledImg.src = URL.createObjectURL(new Blob([buffer]));
+  shuffledFigure.classList.remove("hidden");
+  exports.free(ptr, len);
+}
+
+shuffleButton.addEventListener("click", async () => {
   if (!imageData) alert("Please upload a file");
   try {
-    const buffer = new GifShuffler(
-      imageData,
-      overrideInput.checked,
-      speedInput.valueAsNumber,
-    ).shuffle();
-    shuffledImg.src = URL.createObjectURL(new Blob([buffer]));
-    shuffledFigure.classList.remove("hidden");
+    /** @type {number} */
+    const ptr = exports.alloc(imageData.length);
+    const buffer = new Uint8Array(exports.memory.buffer, ptr, imageData.length);
+    buffer.set(imageData);
+    exports.shuffle(ptr, imageData.length, 0n, overrideInput.checked, speedInput.valueAsNumber / 10);
   } catch (e) {
     alert(e);
   }
