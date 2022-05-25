@@ -11,6 +11,7 @@ jobs:
       - uses: goto-bus-stop/setup-zig@v1
         with:
           version: 0.10.0-dev.2276+3fde14035
+      - run: zig test zig/main.zig
       - run: zig build-lib -OReleaseSmall zig/main.zig -target wasm32-freestanding -dynamic
       - uses: peaceiris/actions-gh-pages@v3
         with:
