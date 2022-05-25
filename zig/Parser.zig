@@ -18,13 +18,13 @@ background_color: consts.Color,
 
 // Data in Graphics Control Extension
 disposal: u3,
-transparent: bool,
-transparent_color: consts.Color,
+transparent_color: ?consts.Color,
 delay_time: u16,
 
 header: *std.ArrayList(u8),
 frames: *std.ArrayList(Frame),
 last_frame: ?*Frame,
+screen_buffer: []consts.Color,
 
 decompressor: *Decompressor,
 
@@ -38,12 +38,12 @@ pub fn init(decompressor: *Decompressor) Parser {
         .color_table_size = undefined,
         .background_color = undefined,
         .disposal = undefined,
-        .transparent = undefined,
         .transparent_color = undefined,
         .delay_time = undefined,
         .header = undefined,
         .frames = undefined,
         .last_frame = undefined,
+        .screen_buffer = undefined,
         .decompressor = decompressor,
     };
 }
@@ -81,9 +81,10 @@ fn nextSection(self: *Parser) !bool {
                     self.index += 1;
                     const packed_byte = self.read(1)[0];
                     self.disposal = @intCast(u3, (packed_byte & 0b00011100) >> 2);
-                    self.transparent = (packed_byte & 1) == 1;
+                    const transparent = (packed_byte & 1) == 1;
                     self.delay_time = std.mem.readIntSlice(u16, self.read(2), .Little);
-                    self.transparent_color = self.read(1)[0];
+                    const transparent_color = self.read(1)[0];
+                    self.transparent_color = if (transparent) transparent_color else null;
                     self.index += 1;
                 },
                 // Comment Extension, Application Extension
@@ -107,20 +108,13 @@ fn nextSection(self: *Parser) !bool {
             const local_color_table = if (color_table_size) |size| self.read(@as(usize, size) * 3) else null;
 
             var frame = Frame{
-                .transparent_color = if (self.transparent) self.transparent_color else null,
+                .disposal = self.disposal,
+                .transparent_color = self.transparent_color,
                 .delay_time = self.delay_time,
                 .color_table_size = color_table_size orelse self.color_table_size orelse return error.MissingColorTable,
                 .local_color_table = local_color_table,
                 .sorted_color_table = sorted_color_table,
-                .data = blk: {
-                    var data = try self.alloc.alloc(consts.Color, @as(u32, self.width) * self.height);
-                    switch (self.disposal) {
-                        0, 2 => std.mem.set(consts.Color, data, self.background_color),
-                        1, 3 => if (self.last_frame) |last_frame| std.mem.copy(consts.Color, data, last_frame.data),
-                        else => return error.UnknownDisposalMode,
-                    }
-                    break :blk data;
-                },
+                .data = try self.alloc.dupe(consts.Color, self.screen_buffer),
             };
 
             var new_data = try std.ArrayList(consts.Color).initCapacity(self.alloc, @as(u32, width) * height);
@@ -133,11 +127,13 @@ fn nextSection(self: *Parser) !bool {
                 var x: u16 = 0;
                 while (x < width) : (x += 1) {
                     const new_color = new_data.items[@as(u32, y) * width + x];
-                    if (!self.transparent or new_color != self.transparent_color) {
-                        frame.data[@as(u32, top) * self.width + left + @as(u32, y) * self.width + x] = new_color;
-                    }
+                    const index = @as(u32, top) * self.width + left + @as(u32, y) * self.width + x;
+                    if (self.disposal == 2) self.screen_buffer[index] = self.background_color;
+                    if (self.transparent_color != null and self.transparent_color.? == new_color) continue;
+                    frame.data[index] = new_color;
                 }
             }
+            if (self.disposal == 1) std.mem.copy(consts.Color, self.screen_buffer, frame.data);
 
             try self.frames.append(frame);
             self.last_frame = &self.frames.items[self.frames.items.len - 1];
@@ -159,8 +155,7 @@ pub fn parse(
     self.index = 0;
     self.alloc = alloc;
     self.disposal = 0;
-    self.transparent = false;
-    self.transparent_color = 0;
+    self.transparent_color = null;
     self.delay_time = 0;
     self.header = header;
     self.frames = frames;
@@ -173,9 +168,12 @@ pub fn parse(
 
     self.width = std.mem.readIntSlice(u16, self.read(2), .Little);
     self.height = std.mem.readIntSlice(u16, self.read(2), .Little);
+    self.screen_buffer = try self.alloc.alloc(consts.Color, @as(u32, self.width) * self.height);
+    defer self.alloc.free(self.screen_buffer);
     const packed_byte = self.read(1)[0];
     self.color_table_size = Parser.colorTableSize(packed_byte);
     self.background_color = self.read(1)[0];
+    std.mem.set(consts.Color, self.screen_buffer, self.background_color);
     self.index += 1; // Pixel aspect ratio
     self.index += @as(usize, self.color_table_size orelse 0) * 3;
     try self.header.appendSlice(self.input[0..self.index]);

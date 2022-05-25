@@ -37,10 +37,13 @@ pub fn write(
 
     for (frames) |*frame| {
         var number_buffer: [2]u8 = .{ 0, 0 };
+        var packed_byte: u8 = 0b00000000;
 
         // Graphics Control Extension
         try output.appendSlice(&.{ 0x21, 0xF9, 0x04 });
-        try output.append(if (frame.transparent_color) |_| 0b00000101 else 0b00000000);
+        packed_byte |= @as(u8, frame.disposal) << 2;
+        if (frame.transparent_color != null) packed_byte |= 0b00000001;
+        try output.append(packed_byte);
         std.mem.writeInt(u16, &number_buffer, delay_time orelse frame.delay_time, .Little);
         try output.appendSlice(&number_buffer);
         try output.append(frame.transparent_color orelse 0);
@@ -53,7 +56,7 @@ pub fn write(
         std.mem.writeInt(u16, &number_buffer, height, .Little);
         try output.appendSlice(&number_buffer);
         if (frame.local_color_table) |color_table| {
-            var packed_byte: u8 = 0b10000000;
+            packed_byte = 0b10000000;
             if (frame.sorted_color_table) packed_byte |= 0b00100000;
             packed_byte |= std.math.log2_int(consts.ColorTableSize, frame.color_table_size) - 1;
             try output.append(packed_byte);
