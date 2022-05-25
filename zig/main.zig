@@ -32,15 +32,31 @@ const Error = error{
     BlockAndStreamEndMismatch,
 };
 
-export fn main(ptr: usize, len: usize, seed: u64, override_delay: bool, delay_time: u16) usize {
-    if (shuffle(ptr, len, seed, override_delay, delay_time)) |_| {
+export fn main(
+    ptr: usize,
+    len: usize,
+    seed: u64,
+    override_delay: bool,
+    delay_time: u16,
+    override_loop: bool,
+    loop_count: u16,
+) usize {
+    if (shuffle(ptr, len, seed, override_delay, delay_time, override_loop, loop_count)) |_| {
         return 0;
     } else |err| {
         return @ptrToInt(@errorName(err).ptr);
     }
 }
 
-fn shuffle(ptr: usize, len: usize, seed: u64, override_delay: bool, delay_time: u16) Error!void {
+fn shuffle(
+    ptr: usize,
+    len: usize,
+    seed: u64,
+    override_delay: bool,
+    delay_time: u16,
+    override_loop: bool,
+    loop_count: u16,
+) Error!void {
     var arena = std.heap.ArenaAllocator.init(allocator);
     defer arena.deinit();
 
@@ -57,6 +73,7 @@ fn shuffle(ptr: usize, len: usize, seed: u64, override_delay: bool, delay_time: 
         @intToPtr([*]const u8, ptr),
         &header,
         &frames,
+        if (override_loop) loop_count else null,
     );
 
     var output = std.ArrayList(u8).init(allocator);
@@ -85,5 +102,5 @@ test "shuffle" {
     const buffer = @embedFile("./test.gif");
     const ptr = alloc(buffer.len);
     std.mem.copy(u8, @intToPtr([*]u8, ptr)[0..buffer.len], buffer);
-    try shuffle(ptr, buffer.len, 0, false, 0);
+    try shuffle(ptr, buffer.len, 0, false, 0, true, 0);
 }

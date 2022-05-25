@@ -1,9 +1,13 @@
 /** @type {HTMLInputElement} */
 const fileInput = document.getElementById("file");
 /** @type {HTMLInputElement} */
-const overrideInput = document.getElementById("override");
+const speedOverrideInput = document.getElementById("speedOverride");
 /** @type {HTMLInputElement} */
 const speedInput = document.getElementById("speed");
+/** @type {HTMLInputElement} */
+const loopOverrideInput = document.getElementById("loopOverride");
+/** @type {HTMLInputElement} */
+const loopInput = document.getElementById("loop");
 /** @type {HTMLInputElement} */
 const seedInput = document.getElementById("seed");
 /** @type {HTMLButtonElement} */
@@ -37,9 +41,15 @@ loadFile();
 fileInput.addEventListener("change", loadFile);
 
 if (seedInput.value === "") seedInput.value = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
-speedInput.disabled = !overrideInput.checked;
-overrideInput.addEventListener("change", () => {
-  speedInput.disabled = !overrideInput.checked;
+
+speedInput.disabled = !speedOverrideInput.checked;
+speedOverrideInput.addEventListener("change", () => {
+  speedInput.disabled = !speedOverrideInput.checked;
+});
+
+loopInput.disabled = !loopOverrideInput.checked;
+loopOverrideInput.addEventListener("change", () => {
+  loopInput.disabled = !loopOverrideInput.checked;
 });
 
 const { instance: { exports } } = await WebAssembly.instantiateStreaming(
@@ -80,8 +90,10 @@ shuffleButton.addEventListener("click", async () => {
       ptr,
       imageData.length,
       BigInt(seedInput.value),
-      overrideInput.checked,
+      speedOverrideInput.checked,
       speedInput.valueAsNumber / 10,
+      loopOverrideInput.checked,
+      loopInput.valueAsNumber,
     );
     if (result !== 0) {
       const keyBuffer = new Uint8Array(exports.memory.buffer, result, 25);

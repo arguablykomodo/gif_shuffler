@@ -10,6 +10,8 @@ index: usize,
 
 alloc: std.mem.Allocator,
 
+loop_count: ?u16,
+
 // Data in Logical Screen Descriptor
 width: u16,
 height: u16,
@@ -30,6 +32,7 @@ decompressor: *Decompressor,
 
 pub fn init(decompressor: *Decompressor) Parser {
     return Parser{
+        .loop_count = undefined,
         .input = undefined,
         .index = undefined,
         .alloc = undefined,
@@ -87,10 +90,29 @@ fn nextSection(self: *Parser) !bool {
                     self.transparent_color = if (transparent) transparent_color else null;
                     self.index += 1;
                 },
-                // Comment Extension, Application Extension
-                0xFE, 0xFF => {
+                // Comment Extension
+                0xFE => {
                     self.skipSubBlocks();
                     try self.header.appendSlice(self.input[start..self.index]);
+                },
+                // Application Extension
+                0xFF => {
+                    const name = self.read(self.read(1)[0]);
+                    self.skipSubBlocks();
+                    if (self.loop_count) |loop_count| {
+                        if (std.mem.eql(u8, name, "NETSCAPE2.0")) {
+                            try self.header.append(marker);
+                            try self.header.append(extension);
+                            try self.header.append(11);
+                            try self.header.appendSlice("NETSCAPE2.0");
+                            try self.header.append(3);
+                            try self.header.append(1);
+                            var number_buffer: [2]u8 = .{ 0, 0 };
+                            std.mem.writeInt(u16, &number_buffer, loop_count, .Little);
+                            try self.header.appendSlice(&number_buffer);
+                            try self.header.append(0);
+                        } else try self.header.appendSlice(self.input[start..self.index]);
+                    } else try self.header.appendSlice(self.input[start..self.index]);
                 },
                 else => return error.UnknownExtensionBlock,
             }
@@ -164,7 +186,9 @@ pub fn parse(
     input: [*]const u8,
     header: *std.ArrayList(u8),
     frames: *std.ArrayList(Frame),
+    loop_count: ?u16,
 ) !void {
+    self.loop_count = loop_count;
     self.input = input;
     self.index = 0;
     self.alloc = alloc;
@@ -207,6 +231,6 @@ test "parse" {
     }
     var decompressor = Decompressor.init();
     var parser = Parser.init(&decompressor);
-    try parser.parse(std.testing.allocator, @embedFile("./test.gif"), &header, &frames);
+    try parser.parse(std.testing.allocator, @embedFile("./test.gif"), &header, &frames, 0);
     try std.testing.expectEqual(@as(usize, 3), parser.frames.items.len);
 }

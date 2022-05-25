@@ -94,7 +94,7 @@ test "write" {
 
     var decompressor = Decompressor.init();
     var parser = Parser.init(&decompressor);
-    try parser.parse(std.testing.allocator, @embedFile("./test.gif"), &header, &frames);
+    try parser.parse(std.testing.allocator, @embedFile("./test.gif"), &header, &frames, 0);
 
     var compressor = Compressor.init();
     var output = std.ArrayList(u8).init(std.testing.allocator);
@@ -109,5 +109,5 @@ test "write" {
         for (new_frames.items) |frame| new_frames.allocator.free(frame.data);
         new_frames.deinit();
     }
-    try parser.parse(std.testing.allocator, @ptrCast([*]const u8, output.items), &new_header, &new_frames);
+    try parser.parse(std.testing.allocator, @ptrCast([*]const u8, output.items), &new_header, &new_frames, 0);
 }
