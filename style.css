@@ -8,8 +8,9 @@ body {
 
 .inputs {
 	display: grid;
-	grid-template-columns: max-content max-content;
+	grid-template-columns: fit-content(50%) fit-content(50%);
 	justify-content: center;
+	align-items: center;
 	grid-gap: 0.5ch 1ch;
 	border: 1px solid black;
 	padding: 1ch;
