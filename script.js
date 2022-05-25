@@ -4,6 +4,8 @@ const fileInput = document.getElementById("file");
 const overrideInput = document.getElementById("override");
 /** @type {HTMLInputElement} */
 const speedInput = document.getElementById("speed");
+/** @type {HTMLInputElement} */
+const seedInput = document.getElementById("seed");
 /** @type {HTMLButtonElement} */
 const shuffleButton = document.getElementById("shuffle");
 /** @type {HTMLElement} */
@@ -34,6 +36,7 @@ async function loadFile() {
 loadFile();
 fileInput.addEventListener("change", loadFile);
 
+if (seedInput.value === "") seedInput.value = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
 speedInput.disabled = !overrideInput.checked;
 overrideInput.addEventListener("change", () => {
   speedInput.disabled = !overrideInput.checked;
@@ -67,7 +70,7 @@ const errors = {
 
 shuffleButton.addEventListener("click", async () => {
   if (!imageData) alert("Please upload a file");
-  try {
+  else try {
     /** @type {number} */
     const ptr = exports.alloc(imageData.length);
     const buffer = new Uint8Array(exports.memory.buffer, ptr, imageData.length);
@@ -76,7 +79,7 @@ shuffleButton.addEventListener("click", async () => {
     const result = exports.main(
       ptr,
       imageData.length,
-      0n,
+      BigInt(seedInput.value),
       overrideInput.checked,
       speedInput.valueAsNumber / 10,
     );
