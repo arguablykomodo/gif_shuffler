@@ -75,8 +75,8 @@ pub fn decompress(
     self.output = output;
     self.color_table_size = @as(consts.ColorTableSize, 1) << @intCast(std.math.Log2Int(consts.ColorTableSize), input[0]);
     setupTable(&self.code_table, self.color_table_size);
+    defer self.resetTable();
 
-    errdefer self.resetTable();
     _ = self.read() orelse unreachable;
     var last_code: consts.Code = self.read() orelse unreachable;
     try self.output.appendSlice(self.code_table.slice()[last_code]);
@@ -99,7 +99,7 @@ pub fn decompress(
                     self.code_table.slice()[last_code],
                     self.code_table.slice()[code][0..1],
                 });
-                try self.code_table.append(new_code);
+                self.code_table.appendAssumeCapacity(new_code);
             }
             try self.output.appendSlice(self.code_table.slice()[code]);
         } else {
@@ -108,11 +108,10 @@ pub fn decompress(
                 self.code_table.slice()[last_code][0..1],
             });
             try self.output.appendSlice(new_code);
-            try self.code_table.append(new_code);
+            self.code_table.appendAssumeCapacity(new_code);
         }
         last_code = code;
     }
-    self.resetTable();
 }
 
 test "decompress" {

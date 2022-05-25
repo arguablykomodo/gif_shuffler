@@ -43,9 +43,9 @@ fn write(self: *Compressor, _code: consts.Code) !void {
             if (self.block_buffer.len == 255) {
                 try self.output.append(255);
                 try self.output.appendSlice(self.block_buffer.slice());
-                try self.block_buffer.resize(0);
+                self.block_buffer.resize(0) catch unreachable;
             }
-            try self.block_buffer.append(self.byte_buffer);
+            self.block_buffer.appendAssumeCapacity(self.byte_buffer);
             self.byte_buffer = 0;
             self.current_bit = 0;
         }
@@ -104,9 +104,9 @@ pub fn compress(
         if (self.block_buffer.len == 255) {
             try self.output.append(255);
             try self.output.appendSlice(self.block_buffer.slice());
-            try self.block_buffer.resize(0);
+            self.block_buffer.resize(0) catch unreachable;
         }
-        try self.block_buffer.append(self.byte_buffer);
+        self.block_buffer.appendAssumeCapacity(self.byte_buffer);
     }
     if (self.block_buffer.len != 0) {
         try self.output.append(@intCast(u8, self.block_buffer.len));

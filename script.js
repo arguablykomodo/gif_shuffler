@@ -44,12 +44,26 @@ const { instance: { exports } } = await WebAssembly.instantiateStreaming(
   { env: { print: console.log, ret } },
 );
 
+/**
+ * @param {number} ptr
+ * @param {number} len
+ */
 function ret(ptr, len) {
   const buffer = new Uint8Array(exports.memory.buffer, ptr, len);
   shuffledImg.src = URL.createObjectURL(new Blob([buffer]));
   shuffledFigure.classList.remove("hidden");
   exports.free(ptr, len);
 }
+
+const errors = {
+  OutOfMemory: "WASM has ran out of memory",
+  WrongHeader: "Are you sure this is a GIF file?",
+  UnknownBlock: "Unknown block found in file",
+  UnknownExtensionBlock: "Unknown extension block found in file",
+  MissingColorTable: "No global or local color table found",
+  BlockAndStreamEndMismatch:
+    "End of LZW stream doesn't match end of sub-blocks",
+};
 
 shuffleButton.addEventListener("click", async () => {
   if (!imageData) alert("Please upload a file");
@@ -58,7 +72,21 @@ shuffleButton.addEventListener("click", async () => {
     const ptr = exports.alloc(imageData.length);
     const buffer = new Uint8Array(exports.memory.buffer, ptr, imageData.length);
     buffer.set(imageData);
-    exports.shuffle(ptr, imageData.length, 0n, overrideInput.checked, speedInput.valueAsNumber / 10);
+    /** @type {number} */
+    const result = exports.main(
+      ptr,
+      imageData.length,
+      0n,
+      overrideInput.checked,
+      speedInput.valueAsNumber / 10,
+    );
+    if (result !== 0) {
+      const keyBuffer = new Uint8Array(exports.memory.buffer, result, 25);
+      let i = 0;
+      while (keyBuffer[i] !== 0) i += 1;
+      const key = new TextDecoder().decode(keyBuffer.slice(0, i));
+      alert(errors[key]);
+    }
   } catch (e) {
     alert(e);
   }
