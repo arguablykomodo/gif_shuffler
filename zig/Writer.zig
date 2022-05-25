@@ -63,11 +63,13 @@ pub fn write(
             try output.appendSlice(color_table);
         } else try output.append(0);
 
-        if (frame.transparent_color) |transparent_color| {
-            if (self.last_frame) |last_frame| {
-                for (frame.data) |color, i| {
-                    if (color == last_frame.data[i]) {
-                        frame.data[i] = transparent_color;
+        if (frame.disposal == 1) {
+            if (frame.transparent_color) |transparent_color| {
+                if (self.last_frame) |last_frame| {
+                    for (frame.data) |color, i| {
+                        if (color == last_frame.data[i]) {
+                            frame.data[i] = transparent_color;
+                        }
                     }
                 }
             }

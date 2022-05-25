@@ -107,6 +107,20 @@ fn nextSection(self: *Parser) !bool {
             const sorted_color_table = (packed_byte & 0b00100000) == 0b00100000;
             const local_color_table = if (color_table_size) |size| self.read(@as(usize, size) * 3) else null;
 
+            if (self.transparent_color) |transparent_color| {
+                if (self.last_frame) |last_frame| {
+                    if (last_frame.transparent_color) |old_transparent_color| {
+                        for (self.screen_buffer) |color, i| {
+                            if (color == old_transparent_color) {
+                                self.screen_buffer[i] = transparent_color;
+                            }
+                        }
+                    }
+                } else {
+                    std.mem.set(consts.Color, self.screen_buffer, transparent_color);
+                }
+            }
+
             var frame = Frame{
                 .disposal = self.disposal,
                 .transparent_color = self.transparent_color,
@@ -128,8 +142,8 @@ fn nextSection(self: *Parser) !bool {
                 while (x < width) : (x += 1) {
                     const new_color = new_data.items[@as(u32, y) * width + x];
                     const index = @as(u32, top) * self.width + left + @as(u32, y) * self.width + x;
-                    if (self.disposal == 2) self.screen_buffer[index] = self.background_color;
-                    if (self.transparent_color != null and self.transparent_color.? == new_color) continue;
+                    if (frame.disposal == 2) self.screen_buffer[index] = frame.transparent_color orelse self.background_color;
+                    if (frame.transparent_color) |transparent_color| if (new_color == transparent_color) continue;
                     frame.data[index] = new_color;
                 }
             }
