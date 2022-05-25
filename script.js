@@ -53,7 +53,7 @@ const { instance: { exports } } = await WebAssembly.instantiateStreaming(
  */
 function ret(ptr, len) {
   const buffer = new Uint8Array(exports.memory.buffer, ptr, len);
-  shuffledImg.src = URL.createObjectURL(new Blob([buffer]));
+  shuffledImg.src = URL.createObjectURL(new Blob([buffer], { type: "image/gif" }));
   shuffledFigure.classList.remove("hidden");
   exports.free(ptr, len);
 }
