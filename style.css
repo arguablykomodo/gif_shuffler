@@ -16,6 +16,8 @@ body {
 	max-width: 80ch;
 	padding: 1ch;
 	margin: 1ch auto;
+	box-shadow: 1px 2px 5px rgba(0, 0, 0, 0.2);
+	background: lightgray;
 }
 
 .inputs label {
@@ -36,7 +38,7 @@ body {
 
 .inputs button {
 	grid-column: 1 / -1;
-	margin-top: 1ch;
+	margin-top: 0.5ch;
 }
 
 .images {
@@ -49,14 +51,16 @@ body {
 
 .images figure {
 	text-align: center;
-	border: 1px solid black;
+	border: 1px solid currentColor;
+	background: lightgray;
 	padding: 1ch;
 	margin: 0;
+	box-shadow: 1px 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .images img {
 	max-width: 100%;
-	border: 1px solid black;
+	border: 1px solid currentColor;
 }
 
 .hidden {
