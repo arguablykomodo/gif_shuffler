@@ -61,6 +61,8 @@ body {
 .images img {
 	max-width: 100%;
 	border: 1px solid currentColor;
+	background-image: conic-gradient(#666 25%, #999 25%, #999 50%, #666 50%, #666 75%, #999 75%);
+	background-size: 8px 8px;
 }
 
 .hidden {
