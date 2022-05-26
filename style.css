@@ -3,26 +3,35 @@
 }
 
 body {
-	margin: 0;
+	margin: 1ch;
 }
 
 .inputs {
 	display: grid;
-	grid-template-columns: fit-content(50%) fit-content(50%);
+	grid-template-columns: 1fr max-content 1fr;
 	justify-content: center;
 	align-items: center;
 	grid-gap: 0.5ch 1ch;
 	border: 1px solid black;
+	max-width: 80ch;
 	padding: 1ch;
-	margin: 1ch;
+	margin: 1ch auto;
 }
 
 .inputs label {
+	grid-column: 1 / 2;
 	text-align: right;
 }
 
+.inputs input[type=checkbox],
+.inputs input[type=radio] {
+	grid-column: 2 / 3;
+	margin: 0;
+}
+
 .inputs input {
-	justify-self: start;
+	grid-column: 3 / 4;
+	min-width: 0;
 }
 
 .inputs button {
@@ -35,14 +44,14 @@ body {
 	justify-content: center;
 	align-items: baseline;
 	flex-wrap: wrap;
+	gap: 1ch;
 }
 
 .images figure {
-	margin: 0;
 	text-align: center;
 	border: 1px solid black;
 	padding: 1ch;
-	margin: 1ch;
+	margin: 0;
 }
 
 .images img {

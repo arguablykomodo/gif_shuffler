@@ -8,19 +8,20 @@
 </head>
 <body>
 	<section class="inputs">
-		<label for="file">File:</label>
+		<label for="fileRadio">File:</label>
+		<input id="fileRadio" type="radio" name="inputMethod" value="file" checked/>
 		<input id="file" type="file" accept="image/gif,.gif"/>
 
-		<label for="speedOverride">Override frame speed:</label>
-		<input id="speedOverride" type="checkbox"/>
+		<label for="urlRadio">URL:</label>
+		<input id="urlRadio" type="radio" name="inputMethod" value="url"/>
+		<input id="url" type="url"/>
 
-		<label for="speed">Frame speed (ms):</label>
+		<label for="speedOverride">Override frame speed (ms):</label>
+		<input id="speedOverride" type="checkbox"/>
 		<input id="speed" type="number" value="20" min="20" max="6553500" step="10"/>
 
-		<label for="loopOverride">Override loop count:</label>
+		<label for="loopOverride">Override loop count (0=&infin;):</label>
 		<input id="loopOverride" type="checkbox"/>
-
-		<label for="loop">Loop count (0=&infin;):</label>
 		<input id="loop" type="number" value="0" min="0" max="65535"/>
 
 		<label for="seed">Random seed:</label>

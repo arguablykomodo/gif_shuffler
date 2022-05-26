@@ -1,5 +1,11 @@
 /** @type {HTMLInputElement} */
+const fileRadio = document.getElementById("fileRadio");
+/** @type {HTMLInputElement} */
 const fileInput = document.getElementById("file");
+/** @type {HTMLInputElement} */
+const urlRadio = document.getElementById("urlRadio");
+/** @type {HTMLInputElement} */
+const urlInput = document.getElementById("url");
 /** @type {HTMLInputElement} */
 const speedOverrideInput = document.getElementById("speedOverride");
 /** @type {HTMLInputElement} */
@@ -25,20 +31,32 @@ const shuffledImg = document.getElementById("shuffled");
 let imageData;
 
 async function loadFile() {
-  const file = fileInput.files?.[0];
-  if (file) {
-    const buffer = await file.arrayBuffer();
-    imageData = new Uint8Array(buffer);
-    originalImg.src = URL.createObjectURL(file);
+  if (fileRadio.checked) {
+    const file = fileInput.files?.[0];
+    if (file) {
+      const buffer = await file.arrayBuffer();
+      imageData = new Uint8Array(buffer);
+      originalImg.src = URL.createObjectURL(file);
+      originalFigure.classList.remove("hidden");
+      shuffledFigure.classList.add("hidden");
+    } else {
+      originalFigure.classList.add("hidden");
+    }
+  } else if (urlRadio.checked) {
+    const response = await fetch(urlInput.value);
+    const blob = await response.blob();
+    imageData = new Uint8Array(await blob.arrayBuffer());
+    originalImg.src = URL.createObjectURL(blob);
     originalFigure.classList.remove("hidden");
     shuffledFigure.classList.add("hidden");
-  } else {
-    originalFigure.classList.add("hidden");
   }
 }
 
 loadFile();
+fileRadio.addEventListener("change", loadFile);
 fileInput.addEventListener("change", loadFile);
+urlRadio.addEventListener("change", loadFile);
+urlInput.addEventListener("change", loadFile);
 
 if (seedInput.value === "") seedInput.value = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
 
