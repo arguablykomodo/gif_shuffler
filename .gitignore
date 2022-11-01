@@ -1,2 +1,4 @@
 zig-cache
 main.wasm
+libmain.a
+libmain.a.o

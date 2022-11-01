@@ -30,11 +30,11 @@ pub fn init() Decompressor {
 }
 
 fn read(self: *Decompressor) ?consts.Code {
-    var bits = @minimum(std.math.log2_int_ceil(consts.CodeTableSize, @intCast(consts.CodeTableSize, self.code_table.len + 1)), 12);
+    var bits = @min(std.math.log2_int_ceil(consts.CodeTableSize, @intCast(consts.CodeTableSize, self.code_table.len + 1)), 12);
     var bits_written: std.math.Log2IntCeil(consts.Code) = 0;
     var code: consts.Code = 0;
     while (bits > 0) {
-        const to_read = @minimum(bits, 8 - self.bit_index);
+        const to_read = @min(bits, 8 - self.bit_index);
         const mask = ((@as(consts.Code, 1) << to_read) - 1) << self.bit_index;
         code |= (self.input[self.byte_index] & mask) >> self.bit_index << bits_written;
         bits_written += to_read;

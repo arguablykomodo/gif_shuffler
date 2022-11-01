@@ -33,7 +33,7 @@ fn write(self: *Compressor, _code: consts.Code) !void {
         @intCast(consts.CodeTableSize, self.code_table.count() + 1), // 1 instead of 2 due to getOrPut
     );
     while (bits > 0) {
-        const to_write = @minimum(bits, 8 - self.current_bit);
+        const to_write = @min(bits, 8 - self.current_bit);
         const mask = (@as(consts.Code, 1) << to_write) - 1;
         self.byte_buffer |= @intCast(u8, (code & mask) << self.current_bit);
         code >>= to_write;

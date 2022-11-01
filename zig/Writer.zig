@@ -30,8 +30,8 @@ pub fn write(
 ) !void {
     self.last_frame = null;
 
-    var rand = std.rand.DefaultPrng.init(seed).random();
-    rand.shuffle(Frame, frames);
+    var rand = std.rand.DefaultPrng.init(seed);
+    rand.random().shuffle(Frame, frames);
 
     try output.appendSlice(header);
 
