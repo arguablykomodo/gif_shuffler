@@ -1,9 +1,9 @@
 const std = @import("std");
-const Frame = @import("./Frame.zig");
-const Decompressor = @import("./Decompressor.zig");
-const Parser = @import("./Parser.zig");
-const Writer = @import("./Writer.zig");
-const Compressor = @import("./Compressor.zig");
+const Frame = @import("Frame.zig");
+const Decompressor = @import("Decompressor.zig");
+const Parser = @import("Parser.zig");
+const Writer = @import("Writer.zig");
+const Compressor = @import("Compressor.zig");
 
 const allocator = if (@import("builtin").is_test) std.testing.allocator else std.heap.page_allocator;
 
@@ -11,7 +11,7 @@ extern fn ret(ptr: usize, len: usize) void;
 
 export fn alloc(n: usize) usize {
     const buf = allocator.alloc(u8, n) catch return 0;
-    return @ptrToInt(buf.ptr);
+    return @intFromPtr(buf.ptr);
 }
 
 export fn free(ptr: [*]const u8, len: usize) void {
@@ -44,7 +44,7 @@ export fn main(
     if (shuffle(ptr, len, seed, override_delay, delay_time, override_loop, loop_count)) |_| {
         return 0;
     } else |err| {
-        return @ptrToInt(@errorName(err).ptr);
+        return @intFromPtr(@errorName(err).ptr);
     }
 }
 
@@ -70,7 +70,7 @@ fn shuffle(
 
     try parser.parse(
         arena.allocator(),
-        @intToPtr([*]const u8, ptr),
+        @ptrFromInt(ptr),
         &header,
         &frames,
         if (override_loop) loop_count else null,
@@ -89,18 +89,18 @@ fn shuffle(
     );
     output.shrinkAndFree(output.items.len);
 
-    free(@intToPtr([*]const u8, ptr), len);
+    free(@ptrFromInt(ptr), len);
 
     if (@import("builtin").is_test) {
         free(output.items.ptr, output.items.len);
     } else {
-        ret(@ptrToInt(output.items.ptr), output.items.len);
+        ret(@intFromPtr(output.items.ptr), output.items.len);
     }
 }
 
 test "shuffle" {
     const buffer = @embedFile("./test.gif");
     const ptr = alloc(buffer.len);
-    std.mem.copy(u8, @intToPtr([*]u8, ptr)[0..buffer.len], buffer);
+    @memcpy(@as([*]u8, @ptrFromInt(ptr))[0..buffer.len], buffer);
     try shuffle(ptr, buffer.len, 0, false, 0, true, 0);
 }

@@ -1,7 +1,7 @@
 const std = @import("std");
-const consts = @import("./consts.zig");
-const Decompressor = @import("./Decompressor.zig");
-const Frame = @import("./Frame.zig");
+const consts = @import("consts.zig");
+const Decompressor = @import("Decompressor.zig");
+const Frame = @import("Frame.zig");
 
 const Parser = @This();
 
@@ -54,7 +54,7 @@ pub fn init(decompressor: *Decompressor) Parser {
 fn colorTableSize(byte: u8) ?consts.ColorTableSize {
     const has_table = byte & 0b10000000;
     if (has_table >> 7 == 1) {
-        const packed_size = @intCast(u4, byte & 0b00000111);
+        const packed_size: u4 = @intCast(byte & 0b00000111);
         return (@as(consts.ColorTableSize, 1) << (packed_size + 1));
     } else return null;
 }
@@ -83,9 +83,9 @@ fn nextSection(self: *Parser) !bool {
                 0xF9 => {
                     self.index += 1;
                     const packed_byte = self.read(1)[0];
-                    self.disposal = @intCast(u3, (packed_byte & 0b00011100) >> 2);
+                    self.disposal = @intCast((packed_byte & 0b00011100) >> 2);
                     const transparent = (packed_byte & 1) == 1;
-                    self.delay_time = std.mem.readIntSlice(u16, self.read(2), .Little);
+                    self.delay_time = std.mem.readInt(u16, self.read(2)[0..2], .little);
                     const transparent_color = self.read(1)[0];
                     self.transparent_color = if (transparent) transparent_color else null;
                     self.index += 1;
@@ -108,7 +108,7 @@ fn nextSection(self: *Parser) !bool {
                             try self.header.append(3);
                             try self.header.append(1);
                             var number_buffer: [2]u8 = .{ 0, 0 };
-                            std.mem.writeInt(u16, &number_buffer, loop_count, .Little);
+                            std.mem.writeInt(u16, &number_buffer, loop_count, .little);
                             try self.header.appendSlice(&number_buffer);
                             try self.header.append(0);
                         } else try self.header.appendSlice(self.input[start..self.index]);
@@ -120,10 +120,10 @@ fn nextSection(self: *Parser) !bool {
         },
         // Image Descriptor
         0x2C => {
-            const left = std.mem.readIntSlice(u16, self.read(2), .Little);
-            const top = std.mem.readIntSlice(u16, self.read(2), .Little);
-            const width = std.mem.readIntSlice(u16, self.read(2), .Little);
-            const height = std.mem.readIntSlice(u16, self.read(2), .Little);
+            const left = std.mem.readInt(u16, self.read(2)[0..2], .little);
+            const top = std.mem.readInt(u16, self.read(2)[0..2], .little);
+            const width = std.mem.readInt(u16, self.read(2)[0..2], .little);
+            const height = std.mem.readInt(u16, self.read(2)[0..2], .little);
             const packed_byte = self.read(1)[0];
             const color_table_size = Parser.colorTableSize(packed_byte);
             const sorted_color_table = (packed_byte & 0b00100000) == 0b00100000;
@@ -132,14 +132,14 @@ fn nextSection(self: *Parser) !bool {
             if (self.transparent_color) |transparent_color| {
                 if (self.last_frame) |last_frame| {
                     if (last_frame.transparent_color) |old_transparent_color| {
-                        for (self.screen_buffer) |color, i| {
+                        for (self.screen_buffer, 0..) |color, i| {
                             if (color == old_transparent_color) {
                                 self.screen_buffer[i] = transparent_color;
                             }
                         }
                     }
                 } else {
-                    std.mem.set(consts.Color, self.screen_buffer, transparent_color);
+                    @memset(self.screen_buffer, transparent_color);
                 }
             }
 
@@ -169,7 +169,7 @@ fn nextSection(self: *Parser) !bool {
                     frame.data[index] = new_color;
                 }
             }
-            if (self.disposal == 1) std.mem.copy(consts.Color, self.screen_buffer, frame.data);
+            if (self.disposal == 1) @memcpy(self.screen_buffer, frame.data);
 
             try self.frames.append(frame);
             self.last_frame = &self.frames.items[self.frames.items.len - 1];
@@ -204,14 +204,14 @@ pub fn parse(
         !(magic[4] == '7' or magic[4] == '9') or
         magic[5] != 'a') return error.WrongHeader;
 
-    self.width = std.mem.readIntSlice(u16, self.read(2), .Little);
-    self.height = std.mem.readIntSlice(u16, self.read(2), .Little);
+    self.width = std.mem.readInt(u16, self.read(2)[0..2], .little);
+    self.height = std.mem.readInt(u16, self.read(2)[0..2], .little);
     self.screen_buffer = try self.alloc.alloc(consts.Color, @as(u32, self.width) * self.height);
     defer self.alloc.free(self.screen_buffer);
     const packed_byte = self.read(1)[0];
     self.color_table_size = Parser.colorTableSize(packed_byte);
     self.background_color = self.read(1)[0];
-    std.mem.set(consts.Color, self.screen_buffer, self.background_color);
+    @memset(self.screen_buffer, self.background_color);
     self.index += 1; // Pixel aspect ratio
     self.index += @as(usize, self.color_table_size orelse 0) * 3;
     try self.header.appendSlice(self.input[0..self.index]);

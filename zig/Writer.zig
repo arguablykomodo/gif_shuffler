@@ -1,9 +1,9 @@
 const std = @import("std");
-const consts = @import("./consts.zig");
-const Decompressor = @import("./Decompressor.zig");
-const Compressor = @import("./Compressor.zig");
-const Parser = @import("./Parser.zig");
-const Frame = @import("./Frame.zig");
+const consts = @import("consts.zig");
+const Decompressor = @import("Decompressor.zig");
+const Compressor = @import("Compressor.zig");
+const Parser = @import("Parser.zig");
+const Frame = @import("Frame.zig");
 
 const Writer = @This();
 
@@ -44,16 +44,16 @@ pub fn write(
         packed_byte |= @as(u8, frame.disposal) << 2;
         if (frame.transparent_color != null) packed_byte |= 0b00000001;
         try output.append(packed_byte);
-        std.mem.writeInt(u16, &number_buffer, delay_time orelse frame.delay_time, .Little);
+        std.mem.writeInt(u16, &number_buffer, delay_time orelse frame.delay_time, .little);
         try output.appendSlice(&number_buffer);
         try output.append(frame.transparent_color orelse 0);
         try output.append(0);
 
         // Image Descriptor
         try output.appendSlice(&.{ 0x2C, 0x00, 0x00, 0x00, 0x00 });
-        std.mem.writeInt(u16, &number_buffer, width, .Little);
+        std.mem.writeInt(u16, &number_buffer, width, .little);
         try output.appendSlice(&number_buffer);
-        std.mem.writeInt(u16, &number_buffer, height, .Little);
+        std.mem.writeInt(u16, &number_buffer, height, .little);
         try output.appendSlice(&number_buffer);
         if (frame.local_color_table) |color_table| {
             packed_byte = 0b10000000;
@@ -66,7 +66,7 @@ pub fn write(
         if (frame.disposal == 1) {
             if (frame.transparent_color) |transparent_color| {
                 if (self.last_frame) |last_frame| {
-                    for (frame.data) |color, i| {
+                    for (frame.data, 0..) |color, i| {
                         if (color == last_frame.data[i]) {
                             frame.data[i] = transparent_color;
                         }
@@ -109,5 +109,5 @@ test "write" {
         for (new_frames.items) |frame| new_frames.allocator.free(frame.data);
         new_frames.deinit();
     }
-    try parser.parse(std.testing.allocator, @ptrCast([*]const u8, output.items), &new_header, &new_frames, 0);
+    try parser.parse(std.testing.allocator, @ptrCast(output.items), &new_header, &new_frames, 0);
 }

@@ -1,6 +1,6 @@
 const std = @import("std");
-const consts = @import("./consts.zig");
-const ALPHABET = @import("./code_table.zig").ALPHABET;
+const consts = @import("consts.zig");
+const ALPHABET = @import("code_table.zig").ALPHABET;
 
 const Compressor = @This();
 
@@ -14,7 +14,7 @@ byte_buffer: u8,
 current_bit: std.math.Log2IntCeil(u8),
 
 pub fn init() Compressor {
-    var compressor = Compressor{
+    return Compressor{
         .input = undefined,
         .color_table_size = undefined,
         .code_table = undefined,
@@ -23,19 +23,18 @@ pub fn init() Compressor {
         .byte_buffer = undefined,
         .current_bit = undefined,
     };
-    return compressor;
 }
 
 fn write(self: *Compressor, _code: consts.Code) !void {
     var code = _code;
     var bits = std.math.log2_int_ceil(
         consts.CodeTableSize,
-        @intCast(consts.CodeTableSize, self.code_table.count() + 1), // 1 instead of 2 due to getOrPut
+        @intCast(self.code_table.count() + 1), // 1 instead of 2 due to getOrPut
     );
     while (bits > 0) {
         const to_write = @min(bits, 8 - self.current_bit);
         const mask = (@as(consts.Code, 1) << to_write) - 1;
-        self.byte_buffer |= @intCast(u8, (code & mask) << self.current_bit);
+        self.byte_buffer |= @intCast((code & mask) << self.current_bit);
         code >>= to_write;
         bits -= to_write;
         self.current_bit += to_write;
@@ -89,7 +88,7 @@ pub fn compress(
             code = result.value_ptr.*;
         } else {
             try self.write(code);
-            result.value_ptr.* = @intCast(consts.Code, self.code_table.count() + 1); // 1 instead of 2 due to getOrPut
+            result.value_ptr.* = @intCast(self.code_table.count() + 1); // 1 instead of 2 due to getOrPut
             index += code_len;
             code_len = 0;
             if (self.code_table.count() + 2 == consts.MAX_CODES) {
@@ -109,7 +108,7 @@ pub fn compress(
         self.block_buffer.appendAssumeCapacity(self.byte_buffer);
     }
     if (self.block_buffer.len != 0) {
-        try self.output.append(@intCast(u8, self.block_buffer.len));
+        try self.output.append(@intCast(self.block_buffer.len));
         try self.output.appendSlice(self.block_buffer.slice());
     }
     try self.output.append(0);

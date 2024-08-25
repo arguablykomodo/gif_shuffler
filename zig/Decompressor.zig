@@ -1,7 +1,7 @@
 const std = @import("std");
-const consts = @import("./consts.zig");
-const setupTable = @import("./code_table.zig").setup;
-const CodeTable = @import("./code_table.zig").CodeTable;
+const consts = @import("consts.zig");
+const setupTable = @import("code_table.zig").setup;
+const CodeTable = @import("code_table.zig").CodeTable;
 
 const Decompressor = @This();
 
@@ -30,7 +30,7 @@ pub fn init() Decompressor {
 }
 
 fn read(self: *Decompressor) ?consts.Code {
-    var bits = @min(std.math.log2_int_ceil(consts.CodeTableSize, @intCast(consts.CodeTableSize, self.code_table.len + 1)), 12);
+    var bits = @min(std.math.log2_int_ceil(consts.CodeTableSize, @intCast(self.code_table.len + 1)), 12);
     var bits_written: std.math.Log2IntCeil(consts.Code) = 0;
     var code: consts.Code = 0;
     while (bits > 0) {
@@ -73,7 +73,7 @@ pub fn decompress(
     self.byte_index = 2;
     self.bit_index = 0;
     self.output = output;
-    self.color_table_size = @as(consts.ColorTableSize, 1) << @intCast(std.math.Log2Int(consts.ColorTableSize), input[0]);
+    self.color_table_size = @as(consts.ColorTableSize, 1) << @intCast(input[0]);
     setupTable(&self.code_table, self.color_table_size);
     defer self.resetTable();
 
