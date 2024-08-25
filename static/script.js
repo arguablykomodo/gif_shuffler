@@ -73,7 +73,7 @@ loopOverrideInput.addEventListener("change", () => {
 });
 
 const { instance: { exports } } = await WebAssembly.instantiateStreaming(
-  fetch("main.wasm"),
+  fetch("gif_shuffler.wasm"),
   { env: { print: console.log, ret } },
 );
 

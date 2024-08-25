@@ -1,20 +1,46 @@
-name: Github Pages
 on:
   push:
     branches:
       - master
+env:
+  ZIG_VERSION: 0.13.0
 jobs:
-  pages:
+  test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: goto-bus-stop/setup-zig@v1
+      - uses: actions/checkout@v4
+      - uses: goto-bus-stop/setup-zig@v2
         with:
-          version: 0.10.0
-      - run: zig test zig/main.zig
-      - run: zig build-lib -OReleaseSmall zig/main.zig -target wasm32-freestanding -dynamic
-      - uses: peaceiris/actions-gh-pages@v3
+          version: ${{ env.ZIG_VERSION }} 
+      - uses: actions/cache@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
-          exclude_assets: .github,.gitignore,zig,zig-cache
+          key: ${{ runner.os }}-zig
+          path: .zig-cache
+      - run: zig build test
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }} 
+      - uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-zig
+          path: .zig-cache
+      - run: zig build -Doptimize=ReleaseSmall -p _site
+      - uses: actions/upload-pages-artifact@v3
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

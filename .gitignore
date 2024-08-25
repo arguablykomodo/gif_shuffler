@@ -1,4 +1,3 @@
-zig-cache
-main.wasm
-libmain.a
-libmain.a.o
+.zig-cache
+zig-out
+_site
