@@ -17,11 +17,10 @@ pub fn build(b: *std.Build) void {
             .cpu_features_add = cpu_features,
         }),
         .optimize = optimize,
-        .root_source_file = b.path("src/main.zig"),
+        .root_source_file = b.path("src/wasm.zig"),
     });
     wasm.entry = .disabled;
     wasm.rdynamic = true;
-
     const install_wasm = b.addInstallArtifact(wasm, .{ .dest_dir = .{ .override = .prefix } });
     b.getInstallStep().dependOn(&install_wasm.step);
 
@@ -33,7 +32,7 @@ pub fn build(b: *std.Build) void {
     b.getInstallStep().dependOn(&install_static.step);
 
     const unit_tests = b.addTest(.{
-        .root_source_file = b.path("src/main.zig"),
+        .root_source_file = b.path("src/lib.zig"),
         .optimize = optimize,
     });
     const run_unit_tests = b.addRunArtifact(unit_tests);
