@@ -1,23 +1,19 @@
 const std = @import("std");
 const consts = @import("consts.zig");
-const ALPHABET = @import("code_table.zig").ALPHABET;
+const Trie = @import("Trie.zig");
 
 const Compressor = @This();
-
-input: []const consts.Color,
-color_table_size: consts.ColorTableSize,
-code_table: std.StringHashMap(consts.Code),
 
 output: *std.ArrayList(u8),
 block_buffer: std.BoundedArray(u8, 255),
 byte_buffer: u8,
 current_bit: std.math.Log2IntCeil(u8),
 
+trie: Trie,
+
 pub fn init() Compressor {
     return Compressor{
-        .input = undefined,
-        .color_table_size = undefined,
-        .code_table = undefined,
+        .trie = undefined,
         .output = undefined,
         .block_buffer = std.BoundedArray(u8, 255).init(0) catch unreachable,
         .byte_buffer = undefined,
@@ -29,7 +25,7 @@ fn write(self: *Compressor, _code: consts.Code) !void {
     var code = _code;
     var bits = std.math.log2_int_ceil(
         consts.CodeTableSize,
-        @intCast(self.code_table.count() + 1), // 1 instead of 2 due to getOrPut
+        @intCast(self.trie.nodes.len),
     );
     while (bits > 0) {
         const to_write = @min(bits, 8 - self.current_bit);
@@ -51,54 +47,38 @@ fn write(self: *Compressor, _code: consts.Code) !void {
     }
 }
 
-fn resetTable(self: *Compressor) !void {
-    self.code_table.clearAndFree();
-    var i: consts.Code = 0;
-    while (i <= self.color_table_size - 1) : (i += 1) {
-        try self.code_table.put(ALPHABET[i .. i + 1], i);
-    }
-}
-
 pub fn compress(
     self: *Compressor,
-    alloc: std.mem.Allocator,
     input: []const consts.Color,
     output: *std.ArrayList(u8),
     color_table_size: consts.ColorTableSize,
 ) !void {
-    self.input = input;
-    self.color_table_size = color_table_size;
-    self.code_table = std.StringHashMap(consts.Code).init(alloc);
+    self.trie = Trie.init(color_table_size);
     self.output = output;
     self.block_buffer.resize(0) catch unreachable;
     self.byte_buffer = 0;
     self.current_bit = 0;
 
-    const minimum_code_size = std.math.log2_int_ceil(consts.ColorTableSize, self.color_table_size);
+    const minimum_code_size = std.math.log2_int_ceil(consts.ColorTableSize, color_table_size);
     try self.output.append(minimum_code_size);
-    try self.resetTable();
-    try self.write(self.color_table_size);
-    var index: usize = 0;
-    var code_len: usize = 0;
-    var code: consts.Code = undefined;
-    while (index + code_len < self.input.len) {
-        const result = try self.code_table.getOrPut(self.input[index .. index + code_len + 1]);
-        if (result.found_existing) {
-            code_len += 1;
-            code = result.value_ptr.*;
+    try self.write(color_table_size);
+    var node: *Trie.Node = &self.trie.nodes.slice()[input[0]];
+    var index: usize = 1;
+    while (index < input.len) : (index += 1) {
+        if (node.findChild(input[index])) |child| {
+            node = child;
         } else {
-            try self.write(code);
-            result.value_ptr.* = @intCast(self.code_table.count() + 1); // 1 instead of 2 due to getOrPut
-            index += code_len;
-            code_len = 0;
-            if (self.code_table.count() + 2 == consts.MAX_CODES) {
-                try self.write(self.color_table_size);
-                try self.resetTable();
+            try self.write(node.code);
+            self.trie.insert(node, input[index]);
+            node = &self.trie.nodes.slice()[input[index]];
+            if (self.trie.nodes.len == consts.MAX_CODES) {
+                try self.write(color_table_size);
+                self.trie.reset(color_table_size);
             }
         }
     }
-    try self.write(code);
-    try self.write(self.color_table_size + 1);
+    try self.write(node.code);
+    try self.write(color_table_size + 1);
     if (self.current_bit != 0) {
         if (self.block_buffer.len == 255) {
             try self.output.append(255);
@@ -112,7 +92,6 @@ pub fn compress(
         try self.output.appendSlice(self.block_buffer.slice());
     }
     try self.output.append(0);
-    self.code_table.deinit();
 }
 
 test "compress" {
@@ -134,6 +113,6 @@ test "compress" {
     var output = std.ArrayList(u8).init(std.testing.allocator);
     defer output.deinit();
     var compressor = Compressor.init();
-    try compressor.compress(std.testing.allocator, &input, &output, 8);
+    try compressor.compress(&input, &output, 8);
     try std.testing.expectEqualSlices(u8, expected, output.items);
 }

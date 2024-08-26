@@ -155,7 +155,7 @@ fn nextSection(self: *Parser) !bool {
 
             var new_data = try std.ArrayList(consts.Color).initCapacity(self.alloc, @as(u32, width) * height);
             defer new_data.deinit();
-            try self.decompressor.decompress(self.alloc, self.input[self.index..self.index].ptr, &new_data);
+            try self.decompressor.decompress(self.input[self.index..self.index].ptr, new_data.writer());
             self.index += self.decompressor.byte_index;
 
             var y: u16 = 0;

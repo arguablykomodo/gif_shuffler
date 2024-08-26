@@ -19,7 +19,6 @@ pub fn init(compressor: *Compressor) Writer {
 
 pub fn write(
     self: *Writer,
-    allocator: std.mem.Allocator,
     header: []const u8,
     frames: []Frame,
     width: u16,
@@ -76,7 +75,7 @@ pub fn write(
         }
 
         // Image data
-        try self.compressor.compress(allocator, frame.data, output, frame.color_table_size);
+        try self.compressor.compress(frame.data, output, frame.color_table_size);
 
         self.last_frame = frame;
     }
@@ -100,7 +99,7 @@ test "write" {
     var output = std.ArrayList(u8).init(std.testing.allocator);
     defer output.deinit();
     var writer = Writer.init(&compressor);
-    try writer.write(std.testing.allocator, header.items, frames.items, parser.width, parser.height, 0, null, &output);
+    try writer.write(header.items, frames.items, parser.width, parser.height, 0, null, &output);
 
     var new_header = std.ArrayList(u8).init(std.testing.allocator);
     defer new_header.deinit();

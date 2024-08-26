@@ -38,7 +38,6 @@ pub fn shuffle(
 
     var output = std.ArrayList(u8).init(alloc);
     try writer.write(
-        alloc,
         header.items,
         frames.items,
         parser.width,
