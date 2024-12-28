@@ -23,17 +23,11 @@ pub fn write(
     frames: []Frame,
     width: u16,
     height: u16,
-    seed: u64,
     delay_time: ?u16,
     output: *std.ArrayList(u8),
 ) !void {
     self.last_frame = null;
-
-    var rand = std.rand.DefaultPrng.init(seed);
-    rand.random().shuffle(Frame, frames);
-
     try output.appendSlice(header);
-
     for (frames) |*frame| {
         var number_buffer: [2]u8 = .{ 0, 0 };
         var packed_byte: u8 = 0b00000000;
@@ -99,7 +93,7 @@ test "write" {
     var output = std.ArrayList(u8).init(std.testing.allocator);
     defer output.deinit();
     var writer = Writer.init(&compressor);
-    try writer.write(header.items, frames.items, parser.width, parser.height, 0, null, &output);
+    try writer.write(header.items, frames.items, parser.width, parser.height, null, &output);
 
     var new_header = std.ArrayList(u8).init(std.testing.allocator);
     defer new_header.deinit();

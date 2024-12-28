@@ -15,6 +15,10 @@ const loopOverrideInput = document.getElementById("loopOverride");
 /** @type {HTMLInputElement} */
 const loopInput = document.getElementById("loop");
 /** @type {HTMLInputElement} */
+const swapRatioInput = document.getElementById("swapRatio");
+/** @type {HTMLInputElement} */
+const swapDistanceInput = document.getElementById("swapDistance");
+/** @type {HTMLInputElement} */
 const seedInput = document.getElementById("seed");
 /** @type {HTMLButtonElement} */
 const shuffleButton = document.getElementById("shuffle");
@@ -122,6 +126,8 @@ shuffleButton.addEventListener("click", async () => {
         speedInput.valueAsNumber / 10,
         loopOverrideInput.checked,
         loopInput.valueAsNumber,
+        swapRatioInput.valueAsNumber / 100,
+        swapDistanceInput.valueAsNumber,
       );
       if (result !== 0) {
         const keyBuffer = new Uint8Array(exports.memory.buffer, result, 25);

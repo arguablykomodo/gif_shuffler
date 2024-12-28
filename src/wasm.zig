@@ -22,6 +22,8 @@ export fn main(
     delay_time: u16,
     override_loop: bool,
     loop_count: u16,
+    swap_ratio: f32,
+    swap_distance: u32,
 ) usize {
     if (lib.shuffle(
         allocator,
@@ -29,6 +31,8 @@ export fn main(
         seed,
         if (override_delay) delay_time else null,
         if (override_loop) loop_count else null,
+        swap_ratio,
+        swap_distance,
     )) |data| {
         ret(@intFromPtr(data.ptr), data.len);
         return 0;

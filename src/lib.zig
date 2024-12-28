@@ -21,6 +21,8 @@ pub fn shuffle(
     seed: u64,
     delay_time: ?u16,
     loop_count: ?u16,
+    swap_ratio: f32,
+    swap_distance: u32,
 ) Error![]const u8 {
     var decompressor = Decompressor.init();
     var parser = Parser.init(&decompressor);
@@ -37,13 +39,21 @@ pub fn shuffle(
 
     try parser.parse(alloc, @ptrCast(data), &header, &frames, loop_count);
 
+    const swaps: usize = @intFromFloat(swap_ratio * @as(f32, @floatFromInt(frames.items.len)));
+    var rand = std.Random.DefaultPrng.init(seed);
+    for (0..swaps) |_| {
+        const i = rand.random().uintLessThan(usize, frames.items.len);
+        const a = i -| swap_distance + 1;
+        const b = @min(i + swap_distance, frames.items.len - 1);
+        std.mem.swap(Frame, &frames.items[a], &frames.items[b]);
+    }
+
     var output = std.ArrayList(u8).init(alloc);
     try writer.write(
         header.items,
         frames.items,
         parser.width,
         parser.height,
-        seed,
         delay_time,
         &output,
     );
@@ -53,6 +63,6 @@ pub fn shuffle(
 
 test "shuffle" {
     const buffer = @embedFile("./test.gif");
-    const shuffled = try shuffle(std.testing.allocator, buffer, 0, null, null);
+    const shuffled = try shuffle(std.testing.allocator, buffer, 0, null, null, 1.0, 50);
     std.testing.allocator.free(shuffled);
 }
