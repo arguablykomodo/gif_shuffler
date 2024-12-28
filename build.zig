@@ -45,6 +45,5 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     const install_bench = b.addInstallArtifact(bench, .{});
-    b.getInstallStep().dependOn(&install_bench.step);
     b.step("bench", "Build benchmark").dependOn(&install_bench.step);
 }
