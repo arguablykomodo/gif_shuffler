@@ -7,6 +7,7 @@ const Compressor = @import("Compressor.zig");
 
 const Error = error{
     OutOfMemory,
+    NoSpaceLeft,
     WrongHeader,
     UnknownBlock,
     UnknownExtensionBlock,

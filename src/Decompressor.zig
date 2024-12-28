@@ -47,7 +47,7 @@ fn read(self: *Decompressor, input: [*]const u8) ?consts.Code {
 pub fn decompress(
     self: *Decompressor,
     input: [*]const u8,
-    writer: anytype,
+    output: []u8,
 ) !void {
     self.block_size = input[1];
     self.byte_index = 2;
@@ -55,14 +55,17 @@ pub fn decompress(
     const color_table_size = @as(consts.ColorTableSize, 1) << @intCast(input[0]);
     self.code_table = CodeTable.init(color_table_size);
 
+    var stream = std.io.fixedBufferStream(output);
+    var writer = stream.writer();
+
     _ = self.read(input) orelse unreachable;
-    var last_code: consts.Code = self.read(input) orelse unreachable;
-    try self.code_table.get(last_code).write(writer);
+    var last_index = stream.pos;
+    try writer.writeAll(self.code_table.get(self.read(input) orelse unreachable));
     while (self.read(input)) |code| {
         if (code == color_table_size) {
             self.code_table.reset(color_table_size);
-            last_code = self.read(input) orelse unreachable;
-            try self.code_table.get(last_code).write(writer);
+            last_index = stream.pos;
+            try writer.writeAll(self.code_table.get(self.read(input) orelse unreachable));
             continue;
         } else if (code == color_table_size + 1) {
             self.byte_index += self.block_size; // Reach end of block
@@ -72,13 +75,17 @@ pub fn decompress(
             break;
         }
         if (code < self.code_table.len()) {
-            if (self.code_table.len() < consts.MAX_CODES) _ = self.code_table.addCode(last_code, code);
-            try self.code_table.get(code).write(writer);
+            const new_index = stream.pos;
+            try writer.writeAll(self.code_table.get(code));
+            if (self.code_table.len() < consts.MAX_CODES) self.code_table.addCode(output[last_index .. new_index + 1]);
+            last_index = new_index;
         } else {
-            const string = self.code_table.addCode(last_code, last_code);
-            try string.write(writer);
+            const new_index = stream.pos;
+            try writer.writeAll(output[last_index..new_index]);
+            try writer.writeByte(output[last_index..new_index][0]);
+            self.code_table.addCode(output[last_index .. new_index + 1]);
+            last_index = new_index;
         }
-        last_code = code;
     }
 }
 
@@ -99,9 +106,8 @@ test "decompress" {
         .{7} ** 4 ++ .{1} ** 3 ++ .{7} ** 4 ++
         .{7} ** 11 ** 2;
     var decompressor = Decompressor.init();
-    var output = std.ArrayList(consts.Color).init(std.testing.allocator);
-    defer output.deinit();
-    try decompressor.decompress(input, output.writer());
-    try std.testing.expectEqualSlices(consts.Color, &expected, output.items);
+    var output = [_]consts.Color{0} ** 319;
+    try decompressor.decompress(input, &output);
+    try std.testing.expectEqualSlices(consts.Color, &expected, &output);
     try std.testing.expectEqual(@as(usize, 51), decompressor.byte_index);
 }

@@ -92,6 +92,7 @@ function ret(ptr, len) {
 
 const errors = {
   OutOfMemory: "WASM has ran out of memory",
+  NoSpaceLeft: "Frame buffer has ran out of memory",
   WrongHeader: "Are you sure this is a GIF file?",
   UnknownBlock: "Unknown block found in file",
   UnknownExtensionBlock: "Unknown extension block found in file",

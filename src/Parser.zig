@@ -153,16 +153,16 @@ fn nextSection(self: *Parser) !bool {
                 .data = try self.alloc.dupe(consts.Color, self.screen_buffer),
             };
 
-            var new_data = try std.ArrayList(consts.Color).initCapacity(self.alloc, @as(u32, width) * height);
-            defer new_data.deinit();
-            try self.decompressor.decompress(self.input[self.index..self.index].ptr, new_data.writer());
+            const new_data = try self.alloc.alloc(consts.Color, @as(u32, width) * height);
+            defer self.alloc.free(new_data);
+            try self.decompressor.decompress(self.input[self.index..self.index].ptr, new_data);
             self.index += self.decompressor.byte_index;
 
             var y: u16 = 0;
             while (y < height) : (y += 1) {
                 var x: u16 = 0;
                 while (x < width) : (x += 1) {
-                    const new_color = new_data.items[@as(u32, y) * width + x];
+                    const new_color = new_data[@as(u32, y) * width + x];
                     const index = @as(u32, top) * self.width + left + @as(u32, y) * self.width + x;
                     if (frame.disposal == 2) self.screen_buffer[index] = frame.transparent_color orelse self.background_color;
                     if (frame.transparent_color) |transparent_color| if (new_color == transparent_color) continue;
