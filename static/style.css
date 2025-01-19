@@ -41,6 +41,13 @@ body {
 	margin-top: 0.5ch;
 }
 
+#error {
+	color: #d72424;
+	font-weight: bold;
+	text-align: center;
+	margin: 1em;
+}
+
 .images {
 	display: flex;
 	justify-content: center;

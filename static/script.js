@@ -22,6 +22,8 @@ const swapDistanceInput = document.getElementById("swapDistance");
 const seedInput = document.getElementById("seed");
 /** @type {HTMLButtonElement} */
 const shuffleButton = document.getElementById("shuffle");
+/** @type {HTMLDivElement} */
+const errorDiv = document.getElementById("error");
 /** @type {HTMLElement} */
 const originalFigure = document.getElementById("originalFigure");
 /** @type {HTMLImageElement} */
@@ -35,6 +37,7 @@ const shuffledImg = document.getElementById("shuffled");
 let imageData;
 
 async function loadFile() {
+  errorDiv.textContent = "";
   if (fileRadio.checked) {
     const file = fileInput.files?.[0];
     if (file) {
@@ -77,6 +80,15 @@ loopOverrideInput.addEventListener("change", () => {
 });
 
 /**
+ * @param {string} message
+ */
+function reportError(message) {
+  shuffleButton.disabled = false;
+  shuffledFigure.classList.add("hidden");
+  errorDiv.textContent = message;
+}
+
+/**
  * @typedef {object} ShuffleSuccess
  * @property {true} success
  * @property {Uint8Array} buffer
@@ -91,28 +103,25 @@ loopOverrideInput.addEventListener("change", () => {
 const worker = new Worker("worker.js", { type: "module" });
 
 worker.addEventListener("message", (e) => {
-  shuffleButton.disabled = false;
   /** @type {ShuffleSuccess | ShuffleError} */
   const data = e.data;
   if (data.success) {
+    shuffleButton.disabled = false;
     shuffledImg.src = URL.createObjectURL(
       new Blob([data.buffer], { type: "image/gif" }),
     );
-  } else {
-    alert(data.error);
-  }
+  } else reportError(data.error);
 });
 
 worker.addEventListener("error", (e) => {
   e.preventDefault();
-  shuffledFigure.classList.add("hidden");
-  shuffleButton.disabled = false;
-  alert(e.message);
+  reportError(e.message);
 });
 
 shuffleButton.addEventListener("click", async () => {
-  if (!imageData) alert("Please upload a file");
+  if (!imageData) reportError("Please upload a file");
   else {
+    errorDiv.textContent = "";
     shuffleButton.disabled = true;
     shuffledFigure.classList.remove("hidden");
     shuffledImg.width = originalImg.width;
