@@ -76,68 +76,50 @@ loopOverrideInput.addEventListener("change", () => {
   loopInput.disabled = !loopOverrideInput.checked;
 });
 
-const { instance: { exports } } = await WebAssembly.instantiateStreaming(
-  fetch("gif_shuffler.wasm"),
-  { env: { print: console.log, ret } },
-);
+/**
+ * @typedef {object} ShuffleSuccess
+ * @property {true} success
+ * @property {Uint8Array} buffer
+ */
 
 /**
- * @param {number} ptr
- * @param {number} len
+ * @typedef {object} ShuffleError
+ * @property {false} success
+ * @property {string} error
  */
-function ret(ptr, len) {
-  const buffer = new Uint8Array(exports.memory.buffer, ptr, len);
-  shuffledImg.src = URL.createObjectURL(
-    new Blob([buffer], { type: "image/gif" }),
-  );
-  shuffledFigure.classList.remove("hidden");
-  exports.free(ptr, len);
-}
 
-const errors = {
-  OutOfMemory: "WASM has ran out of memory",
-  NoSpaceLeft: "Frame buffer has ran out of memory",
-  WrongHeader: "Are you sure this is a GIF file?",
-  UnknownBlock: "Unknown block found in file",
-  UnknownExtensionBlock: "Unknown extension block found in file",
-  MissingColorTable: "No global or local color table found",
-  BlockAndStreamEndMismatch:
-    "End of LZW stream doesn't match end of sub-blocks",
-};
+const worker = new Worker("worker.js", { type: "module" });
+
+worker.addEventListener("message", (e) => {
+  /** @type {ShuffleSuccess | ShuffleError} */
+  const data = e.data;
+  if (data.success) {
+    shuffledImg.src = URL.createObjectURL(
+      new Blob([data.buffer], { type: "image/gif" }),
+    );
+    shuffledFigure.classList.remove("hidden");
+  } else {
+    alert(data.error);
+  }
+});
+
+worker.addEventListener("error", (e) => {
+  e.preventDefault();
+  alert(e.message);
+});
 
 shuffleButton.addEventListener("click", async () => {
   if (!imageData) alert("Please upload a file");
   else {
-    try {
-      /** @type {number} */
-      const ptr = exports.alloc(imageData.length);
-      const buffer = new Uint8Array(
-        exports.memory.buffer,
-        ptr,
-        imageData.length,
-      );
-      buffer.set(imageData);
-      /** @type {number} */
-      const result = exports.main(
-        ptr,
-        imageData.length,
-        BigInt(seedInput.value),
-        speedOverrideInput.checked,
-        speedInput.valueAsNumber / 10,
-        loopOverrideInput.checked,
-        loopInput.valueAsNumber,
-        swapRatioInput.valueAsNumber / 100,
-        swapDistanceInput.valueAsNumber,
-      );
-      if (result !== 0) {
-        const keyBuffer = new Uint8Array(exports.memory.buffer, result, 25);
-        let i = 0;
-        while (keyBuffer[i] !== 0) i += 1;
-        const key = new TextDecoder().decode(keyBuffer.slice(0, i));
-        alert(errors[key]);
-      }
-    } catch (e) {
-      alert(e);
-    }
+    worker.postMessage({
+      imageData,
+      seed: BigInt(seedInput.value),
+      speedOverride: speedOverrideInput.checked,
+      speed: speedInput.valueAsNumber / 10,
+      loopOverride: loopOverrideInput.checked,
+      loop: loopInput.valueAsNumber,
+      swapRatio: swapRatioInput.valueAsNumber / 100,
+      swapDistance: swapDistanceInput.valueAsNumber,
+    });
   }
 });
