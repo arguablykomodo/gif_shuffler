@@ -91,13 +91,13 @@ loopOverrideInput.addEventListener("change", () => {
 const worker = new Worker("worker.js", { type: "module" });
 
 worker.addEventListener("message", (e) => {
+  shuffleButton.disabled = false;
   /** @type {ShuffleSuccess | ShuffleError} */
   const data = e.data;
   if (data.success) {
     shuffledImg.src = URL.createObjectURL(
       new Blob([data.buffer], { type: "image/gif" }),
     );
-    shuffledFigure.classList.remove("hidden");
   } else {
     alert(data.error);
   }
@@ -105,12 +105,19 @@ worker.addEventListener("message", (e) => {
 
 worker.addEventListener("error", (e) => {
   e.preventDefault();
+  shuffledFigure.classList.add("hidden");
+  shuffleButton.disabled = false;
   alert(e.message);
 });
 
 shuffleButton.addEventListener("click", async () => {
   if (!imageData) alert("Please upload a file");
   else {
+    shuffleButton.disabled = true;
+    shuffledFigure.classList.remove("hidden");
+    shuffledImg.width = originalImg.width;
+    shuffledImg.height = originalImg.height;
+    shuffledImg.src = "loading.svg";
     worker.postMessage({
       imageData,
       seed: BigInt(seedInput.value),
