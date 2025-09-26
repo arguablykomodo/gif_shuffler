@@ -1,0 +1,11 @@
+.{
+    .name = .gif_shuffler,
+    .version = "0.1.0",
+    .fingerprint = 0x538e8ec213b95ca3, // Changing this has security and trust implications.
+    .minimum_zig_version = "0.14.1",
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
