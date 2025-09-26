@@ -5,20 +5,8 @@ const Compressor = @import("Compressor.zig");
 const Parser = @import("Parser.zig");
 const Frame = @import("Frame.zig");
 
-const Writer = @This();
-
-compressor: *Compressor,
-last_frame: ?*Frame,
-
-pub fn init(compressor: *Compressor) Writer {
-    return Writer{
-        .compressor = compressor,
-        .last_frame = undefined,
-    };
-}
-
 pub fn write(
-    self: *Writer,
+    compressor: *Compressor,
     header: []const u8,
     frames: []Frame,
     width: u16,
@@ -26,7 +14,7 @@ pub fn write(
     delay_time: ?u16,
     output: *std.ArrayList(u8),
 ) !void {
-    self.last_frame = null;
+    var last_frame: ?*Frame = null;
     try output.appendSlice(header);
     for (frames) |*frame| {
         var number_buffer: [2]u8 = .{ 0, 0 };
@@ -58,9 +46,9 @@ pub fn write(
 
         if (frame.disposal == 1) {
             if (frame.transparent_color) |transparent_color| {
-                if (self.last_frame) |last_frame| {
+                if (last_frame) |last_frame_| {
                     for (frame.data, 0..) |color, i| {
-                        if (color == last_frame.data[i]) {
+                        if (color == last_frame_.data[i]) {
                             frame.data[i] = transparent_color;
                         }
                     }
@@ -69,9 +57,9 @@ pub fn write(
         }
 
         // Image data
-        try self.compressor.compress(frame.data, output, frame.color_table_size);
+        try compressor.compress(frame.data, output, frame.color_table_size);
 
-        self.last_frame = frame;
+        last_frame = frame;
     }
     try output.append(0x3B);
 }
@@ -89,11 +77,10 @@ test "write" {
     var parser = Parser.init(&decompressor);
     try parser.parse(std.testing.allocator, @embedFile("./test.gif"), &header, &frames, 0);
 
-    var compressor = Compressor.init();
+    const compressor = Compressor.init();
     var output = std.ArrayList(u8).init(std.testing.allocator);
     defer output.deinit();
-    var writer = Writer.init(&compressor);
-    try writer.write(header.items, frames.items, parser.width, parser.height, null, &output);
+    try write(compressor, header.items, frames.items, parser.width, parser.height, null, &output);
 
     var new_header = std.ArrayList(u8).init(std.testing.allocator);
     defer new_header.deinit();

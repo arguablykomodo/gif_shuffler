@@ -27,7 +27,6 @@ pub fn shuffle(
     var decompressor = Decompressor.init();
     var parser = Parser.init(&decompressor);
     var compressor = Compressor.init();
-    var writer = Writer.init(&compressor);
 
     var header = std.ArrayList(u8).init(alloc);
     defer header.deinit();
@@ -49,7 +48,8 @@ pub fn shuffle(
     }
 
     var output = std.ArrayList(u8).init(alloc);
-    try writer.write(
+    try Writer.write(
+        &compressor,
         header.items,
         frames.items,
         parser.width,
