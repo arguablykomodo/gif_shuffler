@@ -13,7 +13,7 @@ pub fn main() !void {
         defer file.close();
         const data = try file.readToEndAlloc(alloc, 1024 * 1024 * 100);
         defer alloc.free(data);
-        const shuffled = try lib.shuffle(alloc, data, 0, null, null);
+        const shuffled = try lib.shuffle(alloc, data, 0, null, null, 1, 1);
         _ = shuffled;
     }
 }

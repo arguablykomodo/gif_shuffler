@@ -1,7 +1,9 @@
 const std = @import("std");
 const consts = @import("consts.zig");
 
-codes: std.BoundedArray([]const consts.Color, consts.MAX_CODES),
+var code_buf: [consts.MAX_CODES][]const consts.Color = undefined;
+
+codes: std.ArrayList([]const consts.Color),
 
 const ALPHABET = blk: {
     var colors = [_]consts.Color{0} ** consts.MAX_COLORS;
@@ -10,7 +12,7 @@ const ALPHABET = blk: {
 };
 
 pub fn init(size: consts.CodeTableSize) @This() {
-    var codes = std.BoundedArray([]const consts.Color, consts.MAX_CODES){};
+    var codes = std.ArrayList([]const consts.Color).initBuffer(&code_buf);
     for (0..size) |i| codes.appendAssumeCapacity(ALPHABET[i .. i + 1]);
     codes.appendAssumeCapacity(undefined);
     codes.appendAssumeCapacity(undefined);
@@ -18,15 +20,15 @@ pub fn init(size: consts.CodeTableSize) @This() {
 }
 
 pub fn reset(self: *@This(), size: consts.ColorTableSize) void {
-    self.codes.resize(size + 2) catch unreachable;
+    self.codes.shrinkRetainingCapacity(size + 2);
 }
 
 pub fn get(self: *const @This(), code: consts.Code) []const consts.Color {
-    return self.codes.constSlice()[code];
+    return self.codes.items[code];
 }
 
 pub fn len(self: *const @This()) usize {
-    return self.codes.len;
+    return self.codes.items.len;
 }
 
 pub fn addCode(self: *@This(), string: []const consts.Color) void {

@@ -26,14 +26,14 @@ pub fn shuffle(
 ) Error![]const u8 {
     var decompressor = Decompressor.init();
     var parser = Parser.init(&decompressor);
-    var compressor = Compressor.init();
+    var compressor = Compressor.init(alloc);
 
-    var header = std.ArrayList(u8).init(alloc);
-    defer header.deinit();
-    var frames = std.ArrayList(Frame).init(alloc);
+    var header = std.ArrayList(u8){};
+    defer header.deinit(alloc);
+    var frames = std.ArrayList(Frame){};
     defer {
-        for (frames.items) |frame| frames.allocator.free(frame.data);
-        frames.deinit();
+        for (frames.items) |frame| alloc.free(frame.data);
+        frames.deinit(alloc);
     }
 
     try parser.parse(alloc, @ptrCast(data), &header, &frames, loop_count);
@@ -47,7 +47,7 @@ pub fn shuffle(
         std.mem.swap(Frame, &frames.items[a], &frames.items[b]);
     }
 
-    var output = std.ArrayList(u8).init(alloc);
+    var output = std.ArrayList(u8){};
     try Writer.write(
         &compressor,
         header.items,
@@ -55,10 +55,11 @@ pub fn shuffle(
         parser.width,
         parser.height,
         delay_time,
+        alloc,
         &output,
     );
 
-    return try output.toOwnedSlice();
+    return try output.toOwnedSlice(alloc);
 }
 
 test "shuffle" {

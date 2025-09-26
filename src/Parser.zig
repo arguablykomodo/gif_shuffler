@@ -93,7 +93,7 @@ fn nextSection(self: *Parser) !bool {
                 // Comment Extension
                 0xFE => {
                     self.skipSubBlocks();
-                    try self.header.appendSlice(self.input[start..self.index]);
+                    try self.header.appendSlice(self.alloc, self.input[start..self.index]);
                 },
                 // Application Extension
                 0xFF => {
@@ -101,18 +101,18 @@ fn nextSection(self: *Parser) !bool {
                     self.skipSubBlocks();
                     if (self.loop_count) |loop_count| {
                         if (std.mem.eql(u8, name, "NETSCAPE2.0")) {
-                            try self.header.append(marker);
-                            try self.header.append(extension);
-                            try self.header.append(11);
-                            try self.header.appendSlice("NETSCAPE2.0");
-                            try self.header.append(3);
-                            try self.header.append(1);
+                            try self.header.append(self.alloc, marker);
+                            try self.header.append(self.alloc, extension);
+                            try self.header.append(self.alloc, 11);
+                            try self.header.appendSlice(self.alloc, "NETSCAPE2.0");
+                            try self.header.append(self.alloc, 3);
+                            try self.header.append(self.alloc, 1);
                             var number_buffer: [2]u8 = .{ 0, 0 };
                             std.mem.writeInt(u16, &number_buffer, loop_count, .little);
-                            try self.header.appendSlice(&number_buffer);
-                            try self.header.append(0);
-                        } else try self.header.appendSlice(self.input[start..self.index]);
-                    } else try self.header.appendSlice(self.input[start..self.index]);
+                            try self.header.appendSlice(self.alloc, &number_buffer);
+                            try self.header.append(self.alloc, 0);
+                        } else try self.header.appendSlice(self.alloc, self.input[start..self.index]);
+                    } else try self.header.appendSlice(self.alloc, self.input[start..self.index]);
                 },
                 else => return error.UnknownExtensionBlock,
             }
@@ -171,7 +171,7 @@ fn nextSection(self: *Parser) !bool {
             }
             if (self.disposal == 1) @memcpy(self.screen_buffer, frame.data);
 
-            try self.frames.append(frame);
+            try self.frames.append(self.alloc, frame);
             self.last_frame = &self.frames.items[self.frames.items.len - 1];
             return true;
         },
@@ -214,20 +214,20 @@ pub fn parse(
     @memset(self.screen_buffer, self.background_color);
     self.index += 1; // Pixel aspect ratio
     self.index += @as(usize, self.color_table_size orelse 0) * 3;
-    try self.header.appendSlice(self.input[0..self.index]);
+    try self.header.appendSlice(self.alloc, self.input[0..self.index]);
 
     while (try self.nextSection()) {}
 }
 
 test "parse" {
-    var header = std.ArrayList(u8).init(std.testing.allocator);
-    defer header.deinit();
-    var frames = std.ArrayList(Frame).init(std.testing.allocator);
+    var header = std.ArrayList(u8){};
+    defer header.deinit(std.testing.allocator);
+    var frames = std.ArrayList(Frame){};
     defer {
         for (frames.items) |frame| {
             std.testing.allocator.free(frame.data);
         }
-        frames.deinit();
+        frames.deinit(std.testing.allocator);
     }
     var decompressor = Decompressor.init();
     var parser = Parser.init(&decompressor);
