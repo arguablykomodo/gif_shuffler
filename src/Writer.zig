@@ -6,7 +6,6 @@ const Parser = @import("Parser.zig");
 const Frame = @import("Frame.zig");
 
 pub fn write(
-    compressor: *Compressor,
     header: []const u8,
     frames: []Frame,
     width: u16,
@@ -57,7 +56,7 @@ pub fn write(
         }
 
         // Image data
-        try compressor.compress(frame.data, output, frame.color_table_size);
+        try Compressor.compress(frame.data, output, frame.color_table_size);
 
         last_frame = frame;
     }
@@ -77,10 +76,9 @@ test "write" {
     var parser = Parser.init(&decompressor);
     try parser.parse(std.testing.allocator, @embedFile("./test.gif"), &header, &frames, 0);
 
-    var compressor = Compressor.init(std.testing.allocator);
     var output = std.io.Writer.Allocating.init(std.testing.allocator);
     defer output.deinit();
-    try write(&compressor, header.items, frames.items, parser.width, parser.height, null, &output.writer);
+    try write(header.items, frames.items, parser.width, parser.height, null, &output.writer);
 
     var new_header = std.ArrayList(u8){};
     defer new_header.deinit(std.testing.allocator);

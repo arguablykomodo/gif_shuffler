@@ -27,7 +27,6 @@ pub fn shuffle(
 ) Error![]const u8 {
     var decompressor = Decompressor.init();
     var parser = Parser.init(&decompressor);
-    var compressor = Compressor.init(alloc);
 
     var header = std.ArrayList(u8){};
     defer header.deinit(alloc);
@@ -50,7 +49,6 @@ pub fn shuffle(
 
     var output = std.io.Writer.Allocating.init(alloc);
     try Writer.write(
-        &compressor,
         header.items,
         frames.items,
         parser.width,
