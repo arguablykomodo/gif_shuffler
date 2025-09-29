@@ -6,7 +6,7 @@ const Compressor = @This();
 var block_buffer_buf: [255]u8 = undefined;
 
 alloc: std.mem.Allocator,
-output: *std.ArrayList(u8),
+output: *std.io.Writer,
 block_buffer: std.ArrayList(u8),
 byte_buffer: u8,
 current_bit: std.math.Log2IntCeil(u8),
@@ -39,8 +39,8 @@ fn write(self: *Compressor, _code: consts.Code) !void {
         self.current_bit += to_write;
         if (self.current_bit == 8) {
             if (self.block_buffer.items.len == 255) {
-                try self.output.append(self.alloc, 255);
-                try self.output.appendSlice(self.alloc, self.block_buffer.items);
+                try self.output.writeByte(255);
+                try self.output.writeAll(self.block_buffer.items);
                 self.block_buffer.shrinkRetainingCapacity(0);
             }
             self.block_buffer.appendAssumeCapacity(self.byte_buffer);
@@ -53,7 +53,7 @@ fn write(self: *Compressor, _code: consts.Code) !void {
 pub fn compress(
     self: *Compressor,
     input: []const consts.Color,
-    output: *std.ArrayList(u8),
+    output: *std.io.Writer,
     color_table_size: consts.ColorTableSize,
 ) !void {
     self.trie = Trie.init(color_table_size);
@@ -63,7 +63,7 @@ pub fn compress(
     self.current_bit = 0;
 
     const minimum_code_size = std.math.log2_int_ceil(consts.ColorTableSize, color_table_size);
-    try self.output.append(self.alloc, minimum_code_size);
+    try self.output.writeByte(minimum_code_size);
     try self.write(color_table_size);
     var node: *Trie.Node = &self.trie.nodes.items[input[0]];
     var index: usize = 1;
@@ -84,17 +84,17 @@ pub fn compress(
     try self.write(color_table_size + 1);
     if (self.current_bit != 0) {
         if (self.block_buffer.items.len == 255) {
-            try self.output.append(self.alloc, 255);
-            try self.output.appendSlice(self.alloc, self.block_buffer.items);
+            try self.output.writeByte(255);
+            try self.output.writeAll(self.block_buffer.items);
             self.block_buffer.shrinkRetainingCapacity(0);
         }
         self.block_buffer.appendAssumeCapacity(self.byte_buffer);
     }
     if (self.block_buffer.items.len != 0) {
-        try self.output.append(self.alloc, @intCast(self.block_buffer.items.len));
-        try self.output.appendSlice(self.alloc, self.block_buffer.items);
+        try self.output.writeByte(@intCast(self.block_buffer.items.len));
+        try self.output.writeAll(self.block_buffer.items);
     }
-    try self.output.append(self.alloc, 0);
+    try self.output.writeByte(0);
 }
 
 test "compress" {
@@ -113,9 +113,9 @@ test "compress" {
         .{7} ** 4 ++ .{1} ** 3 ++ .{7} ** 4 ++
         .{7} ** 11 ** 2;
     const expected = @embedFile("./test.gif")[74 .. 74 + 51];
-    var output = std.ArrayList(u8){};
-    defer output.deinit(std.testing.allocator);
+    var output = std.io.Writer.Allocating.init(std.testing.allocator);
+    defer output.deinit();
     var compressor = Compressor.init(std.testing.allocator);
-    try compressor.compress(&input, &output, 8);
-    try std.testing.expectEqualSlices(u8, expected, output.items);
+    try compressor.compress(&input, &output.writer, 8);
+    try std.testing.expectEqualSlices(u8, expected, output.written());
 }

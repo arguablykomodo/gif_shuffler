@@ -13,6 +13,7 @@ const Error = error{
     UnknownExtensionBlock,
     MissingColorTable,
     BlockAndStreamEndMismatch,
+    WriteFailed,
 };
 
 pub fn shuffle(
@@ -47,7 +48,7 @@ pub fn shuffle(
         std.mem.swap(Frame, &frames.items[a], &frames.items[b]);
     }
 
-    var output = std.ArrayList(u8){};
+    var output = std.io.Writer.Allocating.init(alloc);
     try Writer.write(
         &compressor,
         header.items,
@@ -55,11 +56,10 @@ pub fn shuffle(
         parser.width,
         parser.height,
         delay_time,
-        alloc,
-        &output,
+        &output.writer,
     );
 
-    return try output.toOwnedSlice(alloc);
+    return try output.toOwnedSlice();
 }
 
 test "shuffle" {

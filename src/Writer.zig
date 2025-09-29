@@ -12,38 +12,37 @@ pub fn write(
     width: u16,
     height: u16,
     delay_time: ?u16,
-    alloc: std.mem.Allocator,
-    output: *std.ArrayList(u8),
+    output: *std.io.Writer,
 ) !void {
     var last_frame: ?*Frame = null;
-    try output.appendSlice(alloc, header);
+    try output.writeAll(header);
     for (frames) |*frame| {
         var number_buffer: [2]u8 = .{ 0, 0 };
         var packed_byte: u8 = 0b00000000;
 
         // Graphics Control Extension
-        try output.appendSlice(alloc, &.{ 0x21, 0xF9, 0x04 });
+        try output.writeAll(&.{ 0x21, 0xF9, 0x04 });
         packed_byte |= @as(u8, frame.disposal) << 2;
         if (frame.transparent_color != null) packed_byte |= 0b00000001;
-        try output.append(alloc, packed_byte);
+        try output.writeByte(packed_byte);
         std.mem.writeInt(u16, &number_buffer, delay_time orelse frame.delay_time, .little);
-        try output.appendSlice(alloc, &number_buffer);
-        try output.append(alloc, frame.transparent_color orelse 0);
-        try output.append(alloc, 0);
+        try output.writeAll(&number_buffer);
+        try output.writeByte(frame.transparent_color orelse 0);
+        try output.writeByte(0);
 
         // Image Descriptor
-        try output.appendSlice(alloc, &.{ 0x2C, 0x00, 0x00, 0x00, 0x00 });
+        try output.writeAll(&.{ 0x2C, 0x00, 0x00, 0x00, 0x00 });
         std.mem.writeInt(u16, &number_buffer, width, .little);
-        try output.appendSlice(alloc, &number_buffer);
+        try output.writeAll(&number_buffer);
         std.mem.writeInt(u16, &number_buffer, height, .little);
-        try output.appendSlice(alloc, &number_buffer);
+        try output.writeAll(&number_buffer);
         if (frame.local_color_table) |color_table| {
             packed_byte = 0b10000000;
             if (frame.sorted_color_table) packed_byte |= 0b00100000;
             packed_byte |= std.math.log2_int(consts.ColorTableSize, frame.color_table_size) - 1;
-            try output.append(alloc, packed_byte);
-            try output.appendSlice(alloc, color_table);
-        } else try output.append(alloc, 0);
+            try output.writeByte(packed_byte);
+            try output.writeAll(color_table);
+        } else try output.writeByte(0);
 
         if (frame.disposal == 1) {
             if (frame.transparent_color) |transparent_color| {
@@ -62,7 +61,7 @@ pub fn write(
 
         last_frame = frame;
     }
-    try output.append(alloc, 0x3B);
+    try output.writeByte(0x3B);
 }
 
 test "write" {
@@ -79,9 +78,9 @@ test "write" {
     try parser.parse(std.testing.allocator, @embedFile("./test.gif"), &header, &frames, 0);
 
     var compressor = Compressor.init(std.testing.allocator);
-    var output = std.ArrayList(u8){};
-    defer output.deinit(std.testing.allocator);
-    try write(&compressor, header.items, frames.items, parser.width, parser.height, null, std.testing.allocator, &output);
+    var output = std.io.Writer.Allocating.init(std.testing.allocator);
+    defer output.deinit();
+    try write(&compressor, header.items, frames.items, parser.width, parser.height, null, &output.writer);
 
     var new_header = std.ArrayList(u8){};
     defer new_header.deinit(std.testing.allocator);
@@ -90,5 +89,5 @@ test "write" {
         for (new_frames.items) |frame| std.testing.allocator.free(frame.data);
         new_frames.deinit(std.testing.allocator);
     }
-    try parser.parse(std.testing.allocator, @ptrCast(output.items), &new_header, &new_frames, 0);
+    try parser.parse(std.testing.allocator, @ptrCast(output.written()), &new_header, &new_frames, 0);
 }

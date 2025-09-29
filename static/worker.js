@@ -24,6 +24,7 @@ const errors = {
   MissingColorTable: "No global or local color table found",
   BlockAndStreamEndMismatch:
     "End of LZW stream doesn't match end of sub-blocks",
+  WriteFailed: "I/O Error",
 };
 
 /**
