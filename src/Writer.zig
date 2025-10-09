@@ -72,8 +72,7 @@ test "write" {
         frames.deinit(std.testing.allocator);
     }
 
-    var decompressor = Decompressor.init();
-    var parser = Parser.init(&decompressor);
+    var parser = Parser.init();
     try parser.parse(std.testing.allocator, @embedFile("./test.gif"), &header, &frames, 0);
 
     var output = std.io.Writer.Allocating.init(std.testing.allocator);

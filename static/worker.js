@@ -25,6 +25,8 @@ const errors = {
   BlockAndStreamEndMismatch:
     "End of LZW stream doesn't match end of sub-blocks",
   WriteFailed: "I/O Error",
+  ReadFailed: "I/O Error",
+  EndOfStream: "Unexpected EOF",
 };
 
 /**

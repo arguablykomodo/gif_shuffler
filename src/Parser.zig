@@ -5,7 +5,7 @@ const Frame = @import("Frame.zig");
 
 const Parser = @This();
 
-input: [*]const u8,
+input: []const u8,
 index: usize,
 
 alloc: std.mem.Allocator,
@@ -28,9 +28,7 @@ frames: *std.ArrayList(Frame),
 last_frame: ?*Frame,
 screen_buffer: []consts.Color,
 
-decompressor: *Decompressor,
-
-pub fn init(decompressor: *Decompressor) Parser {
+pub fn init() Parser {
     return Parser{
         .loop_count = undefined,
         .input = undefined,
@@ -47,7 +45,6 @@ pub fn init(decompressor: *Decompressor) Parser {
         .frames = undefined,
         .last_frame = undefined,
         .screen_buffer = undefined,
-        .decompressor = decompressor,
     };
 }
 
@@ -155,8 +152,9 @@ fn nextSection(self: *Parser) !bool {
 
             const new_data = try self.alloc.alloc(consts.Color, @as(u32, width) * height);
             defer self.alloc.free(new_data);
-            try self.decompressor.decompress(self.input[self.index..self.index].ptr, new_data);
-            self.index += self.decompressor.byte_index;
+            var reader = std.io.Reader.fixed(self.input[self.index..]);
+            try Decompressor.decompress(&reader, new_data);
+            self.index += reader.seek;
 
             var y: u16 = 0;
             while (y < height) : (y += 1) {
@@ -183,7 +181,7 @@ fn nextSection(self: *Parser) !bool {
 pub fn parse(
     self: *Parser,
     alloc: std.mem.Allocator,
-    input: [*]const u8,
+    input: []const u8,
     header: *std.ArrayList(u8),
     frames: *std.ArrayList(Frame),
     loop_count: ?u16,
@@ -229,8 +227,7 @@ test "parse" {
         }
         frames.deinit(std.testing.allocator);
     }
-    var decompressor = Decompressor.init();
-    var parser = Parser.init(&decompressor);
+    var parser = Parser.init();
     try parser.parse(std.testing.allocator, @embedFile("./test.gif"), &header, &frames, 0);
     try std.testing.expectEqual(@as(usize, 3), parser.frames.items.len);
 }

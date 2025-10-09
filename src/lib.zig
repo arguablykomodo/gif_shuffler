@@ -14,6 +14,8 @@ const Error = error{
     MissingColorTable,
     BlockAndStreamEndMismatch,
     WriteFailed,
+    ReadFailed,
+    EndOfStream,
 };
 
 pub fn shuffle(
@@ -25,8 +27,7 @@ pub fn shuffle(
     swap_ratio: f32,
     swap_distance: u32,
 ) Error![]const u8 {
-    var decompressor = Decompressor.init();
-    var parser = Parser.init(&decompressor);
+    var parser = Parser.init();
 
     var header = std.ArrayList(u8){};
     defer header.deinit(alloc);
