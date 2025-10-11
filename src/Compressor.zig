@@ -63,24 +63,24 @@ pub fn compress(
 
     const minimum_code_size = std.math.log2_int_ceil(consts.ColorTableSize, color_table_size);
     try writer.writeByte(minimum_code_size);
-    try block_writer.write(writer, color_table_size, trie.nodes.items.len);
-    var node: *Trie.Node = &trie.nodes.items[input[0]];
+    try block_writer.write(writer, color_table_size, trie.nodes_len);
+    var node: *Trie.Node = &trie.nodes[input[0]];
     var index: usize = 1;
     while (index < input.len) : (index += 1) {
-        if (node.findChild(input[index])) |child| {
+        if (node.hasChild(input[index])) |child| {
             node = child;
         } else {
-            try block_writer.write(writer, node.code, trie.nodes.items.len);
+            try block_writer.write(writer, node.code, trie.nodes_len);
             trie.insert(node, input[index]);
-            node = &trie.nodes.items[input[index]];
-            if (trie.nodes.items.len == consts.MAX_CODES) {
-                try block_writer.write(writer, color_table_size, trie.nodes.items.len);
+            node = &trie.nodes[input[index]];
+            if (trie.nodes_len == consts.MAX_CODES) {
+                try block_writer.write(writer, color_table_size, trie.nodes_len);
                 trie.reset(color_table_size);
             }
         }
     }
-    try block_writer.write(writer, node.code, trie.nodes.items.len);
-    try block_writer.write(writer, color_table_size + 1, trie.nodes.items.len);
+    try block_writer.write(writer, node.code, trie.nodes_len);
+    try block_writer.write(writer, color_table_size + 1, trie.nodes_len);
     try block_writer.flush(writer);
 }
 

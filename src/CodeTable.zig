@@ -1,9 +1,8 @@
 const std = @import("std");
 const consts = @import("consts.zig");
 
-var code_buf: [consts.MAX_CODES][]const consts.Color = undefined;
-
-codes: std.ArrayList([]const consts.Color),
+code_buf: [consts.MAX_CODES][]const consts.Color = undefined,
+codes: usize = 0,
 
 const ALPHABET = blk: {
     var colors = [_]consts.Color{0} ** consts.MAX_COLORS;
@@ -12,25 +11,25 @@ const ALPHABET = blk: {
 };
 
 pub fn init(size: consts.CodeTableSize) @This() {
-    var codes = std.ArrayList([]const consts.Color).initBuffer(&code_buf);
-    for (0..size) |i| codes.appendAssumeCapacity(ALPHABET[i .. i + 1]);
-    codes.appendAssumeCapacity(undefined);
-    codes.appendAssumeCapacity(undefined);
-    return @This(){ .codes = codes };
+    var code_table = @This(){};
+    for (0..@min(size, consts.MAX_COLORS)) |i| code_table.code_buf[i] = ALPHABET[i .. i + 1];
+    code_table.codes = size + 2;
+    return code_table;
 }
 
-pub fn reset(self: *@This(), size: consts.ColorTableSize) void {
-    self.codes.shrinkRetainingCapacity(size + 2);
+pub fn reset(self: *@This(), size: consts.CodeTableSize) void {
+    self.codes = size + 2;
 }
 
 pub fn get(self: *const @This(), code: consts.Code) []const consts.Color {
-    return self.codes.items[code];
+    return self.code_buf[code];
 }
 
 pub fn len(self: *const @This()) usize {
-    return self.codes.items.len;
+    return self.codes;
 }
 
 pub fn addCode(self: *@This(), string: []const consts.Color) void {
-    self.codes.appendAssumeCapacity(string);
+    self.code_buf[self.codes] = string;
+    self.codes += 1;
 }
