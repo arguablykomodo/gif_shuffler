@@ -7,15 +7,10 @@ const Compressor = @import("Compressor.zig");
 
 const Error = error{
     OutOfMemory,
-    NoSpaceLeft,
-    WrongHeader,
-    UnknownBlock,
-    UnknownExtensionBlock,
-    MissingColorTable,
-    BlockAndStreamEndMismatch,
-    WriteFailed,
     ReadFailed,
+    WriteFailed,
     EndOfStream,
+    Malformed,
 };
 
 pub fn shuffle(

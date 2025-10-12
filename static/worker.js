@@ -16,17 +16,11 @@ const { instance: { exports } } = await WebAssembly.instantiateStreaming(
 );
 
 const errors = {
-  OutOfMemory: "WASM has ran out of memory",
-  NoSpaceLeft: "Frame buffer has ran out of memory",
-  WrongHeader: "Are you sure this is a GIF file?",
-  UnknownBlock: "Unknown block found in file",
-  UnknownExtensionBlock: "Unknown extension block found in file",
-  MissingColorTable: "No global or local color table found",
-  BlockAndStreamEndMismatch:
-    "End of LZW stream doesn't match end of sub-blocks",
-  WriteFailed: "I/O Error",
+  OutOfMemory: "Out of memory",
   ReadFailed: "I/O Error",
-  EndOfStream: "Unexpected EOF",
+  WriteFailed: "I/O Error",
+  EndOfStream: "I/O Error",
+  WrongHeader: "GIF file is corrupted/invalid (are you sure it's a GIF?)",
 };
 
 /**

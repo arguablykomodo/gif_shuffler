@@ -111,7 +111,7 @@ fn nextSection(self: *Parser) !bool {
                         } else try self.header.appendSlice(self.alloc, self.input[start..self.index]);
                     } else try self.header.appendSlice(self.alloc, self.input[start..self.index]);
                 },
-                else => return error.UnknownExtensionBlock,
+                else => return error.Malformed,
             }
             return true;
         },
@@ -144,7 +144,7 @@ fn nextSection(self: *Parser) !bool {
                 .disposal = self.disposal,
                 .transparent_color = self.transparent_color,
                 .delay_time = self.delay_time,
-                .color_table_size = color_table_size orelse self.color_table_size orelse return error.MissingColorTable,
+                .color_table_size = color_table_size orelse self.color_table_size orelse return error.Malformed,
                 .local_color_table = local_color_table,
                 .sorted_color_table = sorted_color_table,
                 .data = try self.alloc.dupe(consts.Color, self.screen_buffer),
@@ -174,7 +174,7 @@ fn nextSection(self: *Parser) !bool {
             return true;
         },
         0x3B => return false,
-        else => return error.UnknownBlock,
+        else => return error.Malformed,
     }
 }
 
@@ -200,7 +200,7 @@ pub fn parse(
     const magic = self.read(6);
     if (!std.mem.eql(u8, magic[0..4], "GIF8") or
         !(magic[4] == '7' or magic[4] == '9') or
-        magic[5] != 'a') return error.WrongHeader;
+        magic[5] != 'a') return error.Malformed;
 
     self.width = std.mem.readInt(u16, self.read(2)[0..2], .little);
     self.height = std.mem.readInt(u16, self.read(2)[0..2], .little);

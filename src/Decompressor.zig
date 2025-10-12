@@ -45,7 +45,7 @@ const BlockReader = struct {
     fn end(self: *BlockReader) !void {
         self.reader.toss(self.block_size);
         self.block_size = try self.reader.takeByte();
-        if (self.block_size != 0) return error.BlockAndStreamEndMismatch;
+        if (self.block_size != 0) return error.Malformed;
     }
 };
 
