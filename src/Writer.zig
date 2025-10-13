@@ -1,5 +1,4 @@
 const std = @import("std");
-const consts = @import("consts.zig");
 const Decompressor = @import("Decompressor.zig");
 const Compressor = @import("Compressor.zig");
 const Parser = @import("Parser.zig");
@@ -38,7 +37,7 @@ pub fn write(
         if (frame.local_color_table) |color_table| {
             packed_byte = 0b10000000;
             if (frame.sorted_color_table) packed_byte |= 0b00100000;
-            packed_byte |= std.math.log2_int(consts.ColorTableSize, frame.color_table_size) - 1;
+            packed_byte |= std.math.log2_int(u9, frame.color_table_size) - 1;
             try output.writeByte(packed_byte);
             try output.writeAll(color_table);
         } else try output.writeByte(0);

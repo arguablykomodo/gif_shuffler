@@ -1,5 +1,4 @@
 const std = @import("std");
-const consts = @import("consts.zig");
 const Decompressor = @import("Decompressor.zig");
 const Frame = @import("Frame.zig");
 
@@ -15,18 +14,18 @@ loop_count: ?u16,
 // Data in Logical Screen Descriptor
 width: u16,
 height: u16,
-color_table_size: ?consts.ColorTableSize,
-background_color: consts.Color,
+color_table_size: ?u9,
+background_color: u8,
 
 // Data in Graphics Control Extension
 disposal: u3,
-transparent_color: ?consts.Color,
+transparent_color: ?u8,
 delay_time: u16,
 
 header: *std.ArrayList(u8),
 frames: *std.ArrayList(Frame),
 last_frame: ?*Frame,
-screen_buffer: []consts.Color,
+screen_buffer: []u8,
 
 pub fn init() Parser {
     return Parser{
@@ -48,11 +47,11 @@ pub fn init() Parser {
     };
 }
 
-fn colorTableSize(byte: u8) ?consts.ColorTableSize {
+fn colorTableSize(byte: u8) ?u9 {
     const has_table = byte & 0b10000000;
     if (has_table >> 7 == 1) {
         const packed_size: u4 = @intCast(byte & 0b00000111);
-        return (@as(consts.ColorTableSize, 1) << (packed_size + 1));
+        return (@as(u9, 1) << (packed_size + 1));
     } else return null;
 }
 
@@ -147,10 +146,10 @@ fn nextSection(self: *Parser) !bool {
                 .color_table_size = color_table_size orelse self.color_table_size orelse return error.Malformed,
                 .local_color_table = local_color_table,
                 .sorted_color_table = sorted_color_table,
-                .data = try self.alloc.dupe(consts.Color, self.screen_buffer),
+                .data = try self.alloc.dupe(u8, self.screen_buffer),
             };
 
-            const new_data = try self.alloc.alloc(consts.Color, @as(u32, width) * height);
+            const new_data = try self.alloc.alloc(u8, @as(u32, width) * height);
             defer self.alloc.free(new_data);
             var reader = std.io.Reader.fixed(self.input[self.index..]);
             try Decompressor.decompress(&reader, new_data);
@@ -204,7 +203,7 @@ pub fn parse(
 
     self.width = std.mem.readInt(u16, self.read(2)[0..2], .little);
     self.height = std.mem.readInt(u16, self.read(2)[0..2], .little);
-    self.screen_buffer = try self.alloc.alloc(consts.Color, @as(u32, self.width) * self.height);
+    self.screen_buffer = try self.alloc.alloc(u8, @as(u32, self.width) * self.height);
     defer self.alloc.free(self.screen_buffer);
     const packed_byte = self.read(1)[0];
     self.color_table_size = Parser.colorTableSize(packed_byte);

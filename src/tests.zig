@@ -4,6 +4,7 @@ comptime {
     _ = @import("Writer.zig");
     _ = @import("Compressor.zig");
     _ = @import("Decompressor.zig");
+    _ = @import("Gif.zig");
 }
 
 test "lzw fuzz" {

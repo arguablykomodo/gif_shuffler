@@ -1,5 +1,4 @@
 const std = @import("std");
-const consts = @import("consts.zig");
 const Trie = @import("Trie.zig");
 
 const BlockWriter = struct {
@@ -8,15 +7,12 @@ const BlockWriter = struct {
     block_end: u8 = 0,
     bit_pos: u4 = 0,
 
-    fn write(self: *BlockWriter, writer: *std.io.Writer, code: consts.Code, code_table_size: usize) !void {
+    fn write(self: *BlockWriter, writer: *std.io.Writer, code: Trie.Code, code_table_size: Trie.Size) !void {
         var code_tmp = code;
-        var bits = std.math.log2_int_ceil(
-            consts.CodeTableSize,
-            @intCast(code_table_size),
-        );
+        var bits = std.math.log2_int_ceil(Trie.Size, code_table_size);
         while (bits > 0) {
             const to_write = @min(bits, 8 - self.bit_pos);
-            const mask = (@as(consts.Code, 1) << to_write) - 1;
+            const mask = (@as(Trie.Code, 1) << to_write) - 1;
             self.byte_buffer |= @intCast((code_tmp & mask) << self.bit_pos);
             code_tmp >>= to_write;
             bits -= to_write;
@@ -54,14 +50,14 @@ const BlockWriter = struct {
 };
 
 pub fn compress(
-    input: []const consts.Color,
+    input: []const u8,
     writer: *std.io.Writer,
-    color_table_size: consts.ColorTableSize,
+    color_table_size: u9,
 ) !void {
     var trie = Trie.init(color_table_size);
     var block_writer = BlockWriter{};
 
-    const minimum_code_size = std.math.log2_int_ceil(consts.ColorTableSize, color_table_size);
+    const minimum_code_size = std.math.log2_int_ceil(u9, color_table_size);
     try writer.writeByte(minimum_code_size);
     try block_writer.write(writer, color_table_size, trie.nodes_len);
     var node: *Trie.Node = &trie.nodes[input[0]];
@@ -73,7 +69,7 @@ pub fn compress(
             try block_writer.write(writer, node.code, trie.nodes_len);
             trie.insert(node, input[index]);
             node = &trie.nodes[input[index]];
-            if (trie.nodes_len == consts.MAX_CODES) {
+            if (trie.nodes_len == Trie.MAX_CODES) {
                 try block_writer.write(writer, color_table_size, trie.nodes_len);
                 trie.reset(color_table_size);
             }
@@ -85,7 +81,7 @@ pub fn compress(
 }
 
 test "compress" {
-    const input: [319]consts.Color =
+    const input: [319]u8 =
         (.{7} ** 11 ** 2 ++
             .{7} ** 4 ++ .{3} ** 3 ++ .{7} ** 4 ++
             .{7} ** 3 ++ .{3} ** 5 ++ .{7} ** 3 ++

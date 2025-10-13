@@ -1,5 +1,8 @@
 const std = @import("std");
-const consts = @import("consts.zig");
+
+pub const MAX_CODES = @import("CodeTable.zig").MAX_CODES;
+pub const Code = @import("CodeTable.zig").Code;
+pub const Size = @import("CodeTable.zig").Size;
 
 // Singly linked list
 pub const Child = struct {
@@ -8,11 +11,11 @@ pub const Child = struct {
 };
 
 pub const Node = struct {
-    code: consts.Code,
-    color: consts.Color,
+    code: Code,
+    color: u8,
     children: ?*Child = null,
 
-    pub fn hasChild(self: *const @This(), color: consts.Color) ?*Node {
+    pub fn hasChild(self: *const @This(), color: u8) ?*Node {
         var child_node = self.children;
         while (child_node) |c| : (child_node = c.next) {
             if (c.data.color == color) return c.data;
@@ -21,25 +24,25 @@ pub const Node = struct {
     }
 };
 
-children: [consts.MAX_CODES]Child = undefined,
-children_len: usize = 0,
-nodes: [consts.MAX_CODES]Node = undefined,
-nodes_len: usize = 0,
+children: [MAX_CODES]Child = undefined,
+children_len: Size = 0,
+nodes: [MAX_CODES]Node = undefined,
+nodes_len: Size = 0,
 
-pub fn init(size: consts.CodeTableSize) @This() {
+pub fn init(size: Size) @This() {
     var self = @This(){};
     for (0..size) |i| self.nodes[i] = Node{ .code = @intCast(i), .color = @intCast(i) };
     self.nodes_len = size + 2;
     return self;
 }
 
-pub fn reset(self: *@This(), size: consts.ColorTableSize) void {
+pub fn reset(self: *@This(), size: u9) void {
     self.children_len = 0;
     self.nodes_len = size + 2;
     for (self.nodes[0..size]) |*node| node.children = null;
 }
 
-pub fn insert(self: *@This(), node: *Node, color: consts.Color) void {
+pub fn insert(self: *@This(), node: *Node, color: u8) void {
     self.children[self.children_len] = Child{
         .data = &self.nodes[self.nodes_len],
         .next = node.children,

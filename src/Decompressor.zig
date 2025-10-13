@@ -1,5 +1,4 @@
 const std = @import("std");
-const consts = @import("consts.zig");
 const CodeTable = @import("CodeTable.zig");
 
 const BlockReader = struct {
@@ -19,13 +18,13 @@ const BlockReader = struct {
         };
     }
 
-    fn read(self: *BlockReader, code_table_size: usize) !?consts.Code {
-        var bits = @min(std.math.log2_int_ceil(consts.CodeTableSize, @intCast(code_table_size + 1)), 12);
-        var bits_written: std.math.Log2IntCeil(consts.Code) = 0;
-        var code: consts.Code = 0;
+    fn read(self: *BlockReader, code_table_size: CodeTable.Size) !?CodeTable.Code {
+        var bits = @min(std.math.log2_int_ceil(CodeTable.Size, code_table_size + 1), 12);
+        var bits_written: std.math.Log2IntCeil(CodeTable.Code) = 0;
+        var code: CodeTable.Code = 0;
         while (bits > 0) {
             const to_read = @min(bits, 8 - self.bit_index);
-            const mask = ((@as(consts.Code, 1) << to_read) - 1) << self.bit_index;
+            const mask = ((@as(CodeTable.Code, 1) << to_read) - 1) << self.bit_index;
             code |= (self.byte & mask) >> self.bit_index << bits_written;
             bits_written += to_read;
             bits -= to_read;
@@ -57,7 +56,7 @@ pub fn decompress(
     const min_code_size = try input.takeByte();
     if (min_code_size > 12) return error.Malformed;
     var block_reader = try BlockReader.init(input);
-    const code_table_size = @as(consts.CodeTableSize, 1) << @intCast(min_code_size);
+    const code_table_size = @as(CodeTable.Size, 1) << @intCast(min_code_size);
     var code_table = CodeTable.init(code_table_size);
 
     var writer = std.io.Writer.fixed(output);
@@ -82,7 +81,7 @@ pub fn decompress(
             const new_index = writer.end;
             const codee = code_table.get(code);
             try writer.writeAll(codee);
-            if (code_table.len() < consts.MAX_CODES) code_table.addCode(output[last_index .. new_index + 1]);
+            if (code_table.len() < CodeTable.MAX_CODES) code_table.addCode(output[last_index .. new_index + 1]);
             last_index = new_index;
         } else {
             const new_index = writer.end;
@@ -97,7 +96,7 @@ pub fn decompress(
 
 test "decompress" {
     const input = @embedFile("./test.gif")[74 .. 74 + 51];
-    const expected: [319]consts.Color =
+    const expected: [319]u8 =
         (.{7} ** 11 ** 2 ++
             .{7} ** 4 ++ .{3} ** 3 ++ .{7} ** 4 ++
             .{7} ** 3 ++ .{3} ** 5 ++ .{7} ** 3 ++
@@ -111,9 +110,9 @@ test "decompress" {
         .{7} ** 3 ++ .{1} ** 5 ++ .{7} ** 3 ++
         .{7} ** 4 ++ .{1} ** 3 ++ .{7} ** 4 ++
         .{7} ** 11 ** 2;
-    var output = [_]consts.Color{0} ** 319;
+    var output = [_]u8{0} ** 319;
     var reader = std.io.Reader.fixed(input);
     try decompress(&reader, &output);
-    try std.testing.expectEqualSlices(consts.Color, &expected, &output);
+    try std.testing.expectEqualSlices(u8, &expected, &output);
     try std.testing.expectEqual(@as(usize, 51), reader.seek);
 }
