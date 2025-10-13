@@ -40,6 +40,7 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
         }),
+        .use_llvm = true,
     });
     const run_unit_tests = b.addRunArtifact(unit_tests);
     b.step("test", "Run unit tests").dependOn(&run_unit_tests.step);

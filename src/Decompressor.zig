@@ -8,11 +8,12 @@ const BlockReader = struct {
     byte: u8,
     bit_index: u4,
 
-    // TODO: what if the first block is empty?
     fn init(reader: *std.io.Reader) !BlockReader {
+        const block_size = try reader.takeByte();
+        if (block_size == 0) return error.Malformed;
         return BlockReader{
             .reader = reader,
-            .block_size = try reader.takeByte() - 1,
+            .block_size = block_size - 1,
             .byte = try reader.takeByte(),
             .bit_index = 0,
         };
@@ -43,7 +44,7 @@ const BlockReader = struct {
     }
 
     fn end(self: *BlockReader) !void {
-        self.reader.toss(self.block_size);
+        try self.reader.discardAll(self.block_size);
         self.block_size = try self.reader.takeByte();
         if (self.block_size != 0) return error.Malformed;
     }
@@ -54,26 +55,30 @@ pub fn decompress(
     output: []u8,
 ) !void {
     const min_code_size = try input.takeByte();
+    if (min_code_size > 12) return error.Malformed;
     var block_reader = try BlockReader.init(input);
-    const color_table_size = @as(consts.ColorTableSize, 1) << @intCast(min_code_size);
-    var code_table = CodeTable.init(color_table_size);
+    const code_table_size = @as(consts.CodeTableSize, 1) << @intCast(min_code_size);
+    var code_table = CodeTable.init(code_table_size);
 
     var writer = std.io.Writer.fixed(output);
 
-    _ = try block_reader.read(code_table.len()) orelse unreachable;
+    _ = try block_reader.read(code_table.len()) orelse return error.Malformed;
     var last_index = writer.end;
-    try writer.writeAll(code_table.get(try block_reader.read(code_table.len()) orelse unreachable));
+    const first_code = try block_reader.read(code_table.len()) orelse return error.Malformed;
+    if (first_code > code_table.len()) return error.Malformed;
+    try writer.writeAll(code_table.get(first_code));
     while (try block_reader.read(code_table.len())) |code| {
-        if (code == color_table_size) {
-            code_table.reset(color_table_size);
+        if (code == code_table_size) {
+            code_table.reset(code_table_size);
             last_index = writer.end;
-            try writer.writeAll(code_table.get(try block_reader.read(code_table.len()) orelse unreachable));
+            const new_code = try block_reader.read(code_table.len()) orelse return error.Malformed;
+            if (new_code > code_table.len()) return error.Malformed;
+            try writer.writeAll(code_table.get(new_code));
             continue;
-        } else if (code == color_table_size + 1) {
+        } else if (code == code_table_size + 1) {
             try block_reader.end();
             break;
-        }
-        if (code < code_table.len()) {
+        } else if (code < code_table.len()) {
             const new_index = writer.end;
             const codee = code_table.get(code);
             try writer.writeAll(codee);
@@ -81,6 +86,7 @@ pub fn decompress(
             last_index = new_index;
         } else {
             const new_index = writer.end;
+            if (new_index <= last_index) return error.Malformed; // First code cannot be new.
             try writer.writeAll(output[last_index..new_index]);
             try writer.writeByte(output[last_index..new_index][0]);
             code_table.addCode(output[last_index .. new_index + 1]);
