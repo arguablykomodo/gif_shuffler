@@ -4,7 +4,7 @@ pub const MAX_CODES = 4096;
 pub const Code = u12;
 pub const Size = u13;
 
-code_buf: [MAX_CODES][]const u8  = undefined,
+code_buf: [MAX_CODES][]const u8 = undefined,
 codes: Size = 0,
 
 const ALPHABET = blk: {

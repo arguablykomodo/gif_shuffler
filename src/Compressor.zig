@@ -7,7 +7,7 @@ const BlockWriter = struct {
     block_end: u8 = 0,
     bit_pos: u4 = 0,
 
-    fn write(self: *BlockWriter, writer: *std.io.Writer, code: Trie.Code, code_table_size: Trie.Size) !void {
+    fn write(self: *BlockWriter, writer: *std.Io.Writer, code: Trie.Code, code_table_size: Trie.Size) !void {
         var code_tmp = code;
         var bits = std.math.log2_int_ceil(Trie.Size, code_table_size);
         while (bits > 0) {
@@ -31,7 +31,7 @@ const BlockWriter = struct {
         }
     }
 
-    fn flush(self: *BlockWriter, writer: *std.io.Writer) !void {
+    fn flush(self: *BlockWriter, writer: *std.Io.Writer) !void {
         if (self.bit_pos != 0) {
             if (self.block_end == 255) {
                 try writer.writeByte(255);
@@ -51,7 +51,7 @@ const BlockWriter = struct {
 
 pub fn compress(
     input: []const u8,
-    writer: *std.io.Writer,
+    writer: *std.Io.Writer,
     color_table_size: u9,
 ) !void {
     var trie = Trie.init(color_table_size);
@@ -96,7 +96,7 @@ test "compress" {
         .{7} ** 4 ++ .{1} ** 3 ++ .{7} ** 4 ++
         .{7} ** 11 ** 2;
     const expected = @embedFile("./test.gif")[74 .. 74 + 51];
-    var output = std.io.Writer.Allocating.init(std.testing.allocator);
+    var output = std.Io.Writer.Allocating.init(std.testing.allocator);
     defer output.deinit();
     try compress(&input, &output.writer, 8);
     try std.testing.expectEqualSlices(u8, expected, output.written());

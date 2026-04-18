@@ -10,7 +10,7 @@ pub fn write(
     width: u16,
     height: u16,
     delay_time: ?u16,
-    output: *std.io.Writer,
+    output: *std.Io.Writer,
 ) !void {
     var last_frame: ?*Frame = null;
     try output.writeAll(header);
@@ -63,9 +63,9 @@ pub fn write(
 }
 
 test "write" {
-    var header = std.ArrayList(u8){};
+    var header = std.ArrayList(u8).empty;
     defer header.deinit(std.testing.allocator);
-    var frames = std.ArrayList(Frame){};
+    var frames = std.ArrayList(Frame).empty;
     defer {
         for (frames.items) |frame| std.testing.allocator.free(frame.data);
         frames.deinit(std.testing.allocator);
@@ -74,13 +74,13 @@ test "write" {
     var parser = Parser.init();
     try parser.parse(std.testing.allocator, @embedFile("./test.gif"), &header, &frames, 0);
 
-    var output = std.io.Writer.Allocating.init(std.testing.allocator);
+    var output = std.Io.Writer.Allocating.init(std.testing.allocator);
     defer output.deinit();
     try write(header.items, frames.items, parser.width, parser.height, null, &output.writer);
 
-    var new_header = std.ArrayList(u8){};
+    var new_header = std.ArrayList(u8).empty;
     defer new_header.deinit(std.testing.allocator);
-    var new_frames = std.ArrayList(Frame){};
+    var new_frames = std.ArrayList(Frame).empty;
     defer {
         for (new_frames.items) |frame| std.testing.allocator.free(frame.data);
         new_frames.deinit(std.testing.allocator);

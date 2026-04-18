@@ -24,9 +24,9 @@ pub fn shuffle(
 ) Error![]const u8 {
     var parser = Parser.init();
 
-    var header = std.ArrayList(u8){};
+    var header = std.ArrayList(u8).empty;
     defer header.deinit(alloc);
-    var frames = std.ArrayList(Frame){};
+    var frames = std.ArrayList(Frame).empty;
     defer {
         for (frames.items) |frame| alloc.free(frame.data);
         frames.deinit(alloc);
@@ -43,7 +43,7 @@ pub fn shuffle(
         std.mem.swap(Frame, &frames.items[a], &frames.items[b]);
     }
 
-    var output = std.io.Writer.Allocating.init(alloc);
+    var output = std.Io.Writer.Allocating.init(alloc);
     try Writer.write(
         header.items,
         frames.items,

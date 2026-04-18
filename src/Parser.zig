@@ -151,7 +151,7 @@ fn nextSection(self: *Parser) !bool {
 
             const new_data = try self.alloc.alloc(u8, @as(u32, width) * height);
             defer self.alloc.free(new_data);
-            var reader = std.io.Reader.fixed(self.input[self.index..]);
+            var reader = std.Io.Reader.fixed(self.input[self.index..]);
             try Decompressor.decompress(&reader, new_data);
             self.index += reader.seek;
 
@@ -217,9 +217,9 @@ pub fn parse(
 }
 
 test "parse" {
-    var header = std.ArrayList(u8){};
+    var header = std.ArrayList(u8).empty;
     defer header.deinit(std.testing.allocator);
-    var frames = std.ArrayList(Frame){};
+    var frames = std.ArrayList(Frame).empty;
     defer {
         for (frames.items) |frame| {
             std.testing.allocator.free(frame.data);

@@ -2,12 +2,12 @@ const std = @import("std");
 const CodeTable = @import("CodeTable.zig");
 
 const BlockReader = struct {
-    reader: *std.io.Reader,
+    reader: *std.Io.Reader,
     block_size: u8,
     byte: u8,
     bit_index: u4,
 
-    fn init(reader: *std.io.Reader) !BlockReader {
+    fn init(reader: *std.Io.Reader) !BlockReader {
         const block_size = try reader.takeByte();
         if (block_size == 0) return error.Malformed;
         return BlockReader{
@@ -50,7 +50,7 @@ const BlockReader = struct {
 };
 
 pub fn decompress(
-    input: *std.io.Reader,
+    input: *std.Io.Reader,
     output: []u8,
 ) !void {
     const min_code_size = try input.takeByte();
@@ -59,7 +59,7 @@ pub fn decompress(
     const code_table_size = @as(CodeTable.Size, 1) << @intCast(min_code_size);
     var code_table = CodeTable.init(code_table_size);
 
-    var writer = std.io.Writer.fixed(output);
+    var writer = std.Io.Writer.fixed(output);
 
     _ = try block_reader.read(code_table.len()) orelse return error.Malformed;
     var last_index = writer.end;
@@ -111,7 +111,7 @@ test "decompress" {
         .{7} ** 4 ++ .{1} ** 3 ++ .{7} ** 4 ++
         .{7} ** 11 ** 2;
     var output = [_]u8{0} ** 319;
-    var reader = std.io.Reader.fixed(input);
+    var reader = std.Io.Reader.fixed(input);
     try decompress(&reader, &output);
     try std.testing.expectEqualSlices(u8, &expected, &output);
     try std.testing.expectEqual(@as(usize, 51), reader.seek);
